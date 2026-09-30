@@ -2,7 +2,7 @@
 % UNITS: 
 %   distances: [m];
 %   angles: [rad].
-% Run once to create model, then call poe_fk(q, model) or curo6r_viewer(model).
+% Run once to create model, then call poe_fk(q, poe_model) or curo6r_viewer(poe_model).
 % Endpoint E is link_6.
 
 alpha = pi/6;                 % Use 0.52359877559 to match the URDF.
@@ -53,4 +53,4 @@ S = [omega; v];
 R0 = [1 0 0; 0 c -s; 0 s c];
 M = [R0 r(:,6); 0 0 0 1];
 
-model = struct('omega', omega, 'r', r, 'S', S, 'xi_hat', xi_hat, 'M', M);
+poe_model = struct('omega', omega, 'r', r, 'S', S, 'xi_hat', xi_hat, 'M', M);
