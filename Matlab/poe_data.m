@@ -5,6 +5,7 @@
 % Run once to create model, then call poe_fk(q, poe_model) or curo6r_viewer(poe_model).
 % Endpoint E is link_6.
 
+robot_dimensions;            % Shared named dimensions in metres.
 alpha = pi/6;                 % Use 0.52359877559 to match the URDF.
 c = cos(alpha);
 s = sin(alpha);
@@ -17,17 +18,6 @@ omega(:,3) = [0; -s; c];
 omega(:,4) = [1; 0; 0];
 omega(:,5) = omega(:,3);
 omega(:,6) = omega(:,4);
-
-% Named dimensions.
-h1 = 0.5;
-h2 = 0.5;
-l2 = 0.8;
-l3 = 2;
-w3 = 5/4;
-l4 = 3/2;
-h4 = 3/4;
-l5 = 1;
-l6 = 1.5;
 
 % Successive joint-origin offsets.
 r = zeros(3,6);

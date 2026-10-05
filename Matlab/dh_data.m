@@ -1,68 +1,32 @@
-% DH parameter table:
-%   column 1: theta_i
-%   column 2: d_i
-%   column 3: a_i
-%   column 4: alpha_i
-dh_parameters = [
-    0, 1, 0.8, -pi/3;
-    0, 1.25, 2, pi/2;
-    pi/2, 0.75, 0, pi/2;
-    0, 2.5, 0, -pi/2;
-    0, 0, 0, pi/2;
-    0, 1.5, 0, 0;
-    ];
+% Denavit-Hartenberg data for CuRo6R.
+% UNITS:
+%   distances: [m];
+%   angles: [rad].
+% Run dh_data, then call dh_fk(q, dh_model).
+% Base frame 0 is base_link; endpoint E is link_6, as in poe_data.
+%
+% Joint i rotates about z_(i-1). The transform from frame i to frame i-1 is
+% A_i(q_i) = Rz(theta_i + q_i) * Tz(d_i) * Tx(a_i) * Rx(alpha_i).
+% theta contains fixed offsets; q uses the same joint zeros/signs as PoE.
 
-n = size(dh_parameters,1);
+robot_dimensions; % Shared named dimensions in metres.
 
-Rzi = zeros(4,4,n);
-Tzi = zeros(4,4,n);
-Txi = zeros(4,4,n);
-Rxi = zeros(4,4,n);
-Ai = zeros(4,4,n);
-Rz = @(theta) [
-        cos(theta), -sin(theta), 0, 0;
-        sin(theta), cos(theta), 0, 0;
-        0, 0, 1, 0;
-        0, 0, 0, 1;
-    ];
-Rx = @(alpha) [
-        1, 0, 0, 0;
-        0, cos(alpha), -sin(alpha), 0;
-        0, sin(alpha), cos(alpha), 0;
-        0, 0, 0, 1;
-    ];
-Tx = @(a) [
-        1, 0, 0, a;
-        0, 1, 0, 0;
-        0, 0, 1, 0;
-        0, 0, 0, 1;
-    ];
-Tz = @(d) [
-        1, 0, 0, 0;
-        0, 1, 0, 0;
-        0, 0, 1, d;
-        0, 0, 0, 1;
-    ];
+%         Joint:  1      2      3      4      5      6
+theta = [        0,     0,  pi/2,     0,     0,     0];
+d     = [    h1+h2,    w3,    h4, l4+l5,     0,    l6];
+a     = [       l2,    l3,     0,     0,     0,     0];
+alpha = [    -pi/3,  pi/2,  pi/2, -pi/2,  pi/2,     0];
+n = numel(theta);
 
+% DH origins need not coincide with the physical joint origins in PoE.
 
-for i=1:n
-    Rzi(:, :, i) = Rz(dh_parameters(i,1));
-    Tzi(:, :, i) = Tz(dh_parameters(i,2));
-    Txi(:, :, i) = Tx(dh_parameters(i,3));
-    Rxi(:, :, i) = Rx(dh_parameters(i,4));
-    Ai(:, :, i) = Rzi(:, :, i)*Tzi(:, :, i)*Txi(:, :, i)*Rxi(:, :, i);
-end
+% Fixed pose of endpoint E in DH frame 6: ^6 T_E.
+% The origins coincide, with x_E = z_6, y_E = x_6, z_E = y_6.
+% Append this on the RIGHT: ^0 T_E = A_1 * ... * A_6 * ^6 T_E.
+tool_transform = [0, 1, 0, 0;
+                  0, 0, 1, 0;
+                  1, 0, 0, 0;
+                  0, 0, 0, 1];
 
-tool_transform = [
-    0, 1, 0, 0;
-    0, 0, 1, 0;
-    1, 0, 0, 0;
-    0, 0, 0, 1;
-];
-
-T = eye(4);
-for i=1:n
-    T = T*Ai(:, :, i);
-end
-
-T
+dh_model = struct('n', n, 'theta', theta, 'd', d, 'a', a, ...
+    'alpha', alpha, 'tool_transform', tool_transform);

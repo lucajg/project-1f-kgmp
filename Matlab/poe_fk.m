@@ -2,7 +2,7 @@ function [T, p, w] = poe_fk(q, poe_model)
 % q: joint angles in radians. T: endpoint pose in the base frame.
 % p(:,i), w(:,i): current joint origin and axis direction in the base frame.
 
-n = size(poe_model.xi_hat, 3);
+n = size(poe_model.xi_hat, 3); % xi_hat is a 3D array, the third dimension separates the different joints
 validateattributes(q, {'numeric'}, {'real','finite','vector','numel',n});
 q = q(:);
 p = zeros(3,n);
