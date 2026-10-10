@@ -1,6 +1,10 @@
-function [T, p, w, F0] = poe_fk(q, poe_model)
+function [T, p, w, F0] = poe_fk(q, poe_model, joint)
 % Endpoint pose and physical joint axes in base_link; F0 stores PoE prefixes.
-n = size(poe_model.xi_hat,3);
+% joint limits the active factors; M still specifies the endpoint at home.
+if nargin < 3
+    joint = size(poe_model.xi_hat,3);
+end
+n = joint;
 validate_joint_vector(q,n);
 q = q(:);
 p = zeros(3,n);

@@ -1,6 +1,6 @@
 # project-1f-kgmp
 
-MATLAB forward kinematics and geometric Jacobians for CuRo6R, a robot with six revolute joints, using the Product of Exponentials (PoE), standard Denavit-Hartenberg (DH), and directly composed URDF joint transforms. All three use `base_link` as the base, `link_6` as the endpoint, and the same joint order, positive directions, and zero configuration. Distances are in metres and angles in radians. Numerical calculations require no Robotics Toolbox; symbolic calculations require Symbolic Math Toolbox.
+MATLAB forward kinematics, analytical inverse kinematics, and geometric Jacobians for CuRo6R, a robot with six revolute joints. Forward kinematics uses the Product of Exponentials (PoE), standard Denavit-Hartenberg (DH), and directly composed URDF joint transforms. All three use `base_link` as the base, `link_6` as the endpoint, and the same joint order, positive directions, and zero configuration. Distances are in metres and angles in radians. Numerical calculations, including IK, require no Robotics Toolbox; symbolic calculations require Symbolic Math Toolbox.
 
 From the repository root in MATLAB:
 
@@ -16,6 +16,7 @@ q = [20; -35; 50; 15; -40; 60]*pi/180;
 [T_urdf, p_urdf, w_urdf] = urdf_fk(q, urdf_model);
 check_dh_poe;
 check_jacobians(false); % Numerical checks; omit false to include symbolic checks.
+check_analytical_ik;
 
 curo6r_compare(poe_model, dh_model); % Side-by-side, shared joint controls.
 % curo6r_viewer(poe_model);          % PoE alone.
@@ -32,6 +33,8 @@ The model also stores `R_home(:,:,f+1)`, the orientation of named DH frame `f` a
 
 **[poe_fk.m](Matlab/poe_fk.m)** computes the product `T = expm(xi_hat(:,:,1)*q(1)) * ... * expm(xi_hat(:,:,6)*q(6)) * M`. For the robot's unit revolute axes, each exponential is evaluated directly with `R = I + sin(q)*W + (1-cos(q))*W^2` and translation `(I-R)*r`. This closed form supports both numbers and exact symbols. The optional fourth output `F0(:,:,i+1)` contains the product through joint `i`, with identity in the first slice. Symbolic cumulative transforms are simplified at each step.
 
+The optional third input, `poe_fk(q,poe_model,joint)`, limits the product to the first `joint` factors and requires that many joint angles. Omitting it uses all model joints. The endpoint home pose `M` is still appended: shortening the product holds later joints at zero, while retaining their geometry. To track the wrist center with three active joints, copy the model and set `M(1:3,4) = r(:,5)` in that copy.
+
 Before adding joint `i`'s motion, `F` contains only joints `1,...,i-1`. Its rotation and translation carry joint `i`'s home origin and axis into their current positions: `p(:,i) = R*r(:,i) + t` and `w(:,i) = R*omega(:,i)`. Thus `p` tracks the physical joint origins specified in `poe_data`.
 
 **[dh_data.m](Matlab/dh_data.m)** builds `dh_model` using standard DH frames, with joint `i` rotating about `z_(i-1)`. The four parameter arrays describe the angle offset `theta`, translation `d` along the preceding z-axis, translation `a` along the new x-axis, and twist `alpha` about that x-axis. In particular, `d = [h1+h2, w3, h4, l4+l5, 0, l6]` and `a = [l2, l3, 0, 0, 0, 0]` use the shared dimensions. The actual joint angle is `theta(i) + q(i)`, so the third joint's `pi/2` offset is present even at home. See also the [MathWorks DH parameter reference](https://www.mathworks.com/help/robotics/ref/rigidbodyjoint.setfixedtransform.html).
@@ -43,6 +46,32 @@ The fixed `tool_transform` expresses endpoint frame `link_6` in DH frame 6. Thei
 **[urdf_data.m](Matlab/urdf_data.m)** transcribes the six revolute joints from [CuRo6R.urdf](CuRo6R/CuRo6R.urdf) into `urdf_model`, with one joint per column of `xyz`, `rpy`, and `axis`. No file parsing is performed. Positions and roll-pitch-yaw angles place each joint frame relative to its parent link; axes are expressed in those local joint frames. The URDF's `0.52359877559` roll is interpreted as the intended exact `pi/6`, matching DH and PoE. The endpoint is `link_6`; `tool0` branches from `link_3_d3`, and visual/collision origins only place meshes.
 
 **[urdf_fk.m](Matlab/urdf_fk.m)** alternates fixed placement and joint motion. For joint `i`, it forms `origin = [Rz(yaw)*Ry(pitch)*Rx(roll), xyz; 0, 0, 0, 1]`, then updates `F = F * origin`. At this point, `F` places the joint in the base frame: its translation gives `p(:,i)` and its rotation maps the local axis to `w(:,i)`. It then appends the local rotation by `q(i)`, using Rodrigues' formula `R = I + sin(q)*K + (1-cos(q))*K^2`, where `K*v = cross(axis,v)`. After joint 6, `F` is already the endpoint pose. Thus URDF composes local link geometry, DH composes specially chosen joint frames, and PoE moves home screw axes expressed in the base frame.
+
+**[analytical_ik_3r.m](Matlab/analytical_ik_3r.m)** solves the positioning problem with `Q_arm = analytical_ik_3r(T_d,poe_model,dh_model)`. Each column is a candidate `[q1; q2; q3]`. The input is the desired **link_6 pose**, not a wrist-center pose: the solver first computes `p_w = T_d(1:3,4) - d6*T_d(1:3,1)`. The tool offset is along the physical tool's x-axis. This removes `d6` from the arm geometry while retaining `d4`, which reaches the wrist center.
+
+The solver expresses the wrist center relative to the shoulder, undoes the fixed 30-degree tilt, and eliminates `q2` using the unchanged y-component and preserved vector length. Combining the resulting expressions for `sin(q3)` and `cos(q3)` gives a quartic in `t = tan(q1/2)`. Its coefficient arrays use descending powers, as expected by MATLAB's `roots`; `conv(P,P)` forms the coefficients of a squared polynomial. Each real root gives a candidate `q1`, and `q1 = pi` is checked separately because it is absent from the finite half-angle chart. Back-substitution recovers `q3` and then `q2` with `atan2`. Candidates are checked against PoE wrist-center FK and deduplicated modulo `2*pi`.
+
+**[analytical_ik_6r.m](Matlab/analytical_ik_6r.m)** calls the positioning solver, then solves the wrist for every arm candidate. The physical arm orientation is `R_arm = R_F*poe_model.M(1:3,1:3)`, where `R_F` is the rotation of the first three PoE factors; the home orientation must be included. The desired wrist rotation is `R_arm.'*T_d(1:3,1:3)`, which decomposes as `Rx(q4)*Rz(q5)*Rx(q6)` for this robot's local wrist axes.
+
+For a regular wrist, `rho = hypot(R(2,1),R(3,1))` gives `abs(sin(q5))`. Both signs are retained, giving two wrist branches per arm candidate and up to eight isolated solutions in the generic case. The first column gives `q4`, including the chosen sign of `sin(q5)`. To recover `q6`, the solver removes `Rx(q4)` on the left: the remaining `Rz(q5)*Rx(q6)` has third row `[0, sin(q6), cos(q6)]`. This avoids dividing by a small `sin(q5)` a second time and preserves branches close to wrist singularities. At `q5 = 0`, only `q4 + q6` is determined; at `q5 = pi`, only `q4 - q6` is determined. The solver chooses `q4 = 0` for these singular families and solves the remaining angle. Every returned six-angle column is checked against the complete PoE tool pose, with separate position and rotation tolerances.
+
+Both solvers take a numeric rigid transform and consistent numeric models built from the same dimensions. They are specific to CuRo6R's axes and fixed tilt, and require nonzero `a2` and `d4`. Angles lie in `[-pi,pi]`, matching the supplied URDF limits; there is no separate custom-limit input. Unreachable targets return `zeros(3,0)` or `zeros(6,0)`. Continuous families have representative solutions rather than an exhaustive parameterization: for example, the positioning solver chooses `q1 = 0` when its constraint is identically zero. Root finding and singularity decisions use numerical tolerances; the analytic reduction does not require a numerical IK initial guess.
+
+```matlab
+q_test = [20; -35; 50; 15; -40; 60]*pi/180;
+T_d = poe_fk(q_test,poe_model);
+Q_arm = analytical_ik_3r(T_d,poe_model,dh_model); % 3 x number of arm solutions.
+Q = analytical_ik_6r(T_d,poe_model,dh_model);    % 6 x number of full solutions.
+if ~isempty(Q)
+    T_check = poe_fk(Q(:,1),poe_model);
+    position_error = norm(T_check(1:3,4)-T_d(1:3,4));
+    rotation_error = norm(T_check(1:3,1:3)-T_d(1:3,1:3),'fro');
+end
+```
+
+Different joint vectors can reproduce the same pose, so check FK agreement rather than demanding that every solution equal `q_test`.
+
+**[check_analytical_ik.m](Matlab/check_analytical_ik.m)** performs repeatable round trips against independent DH and URDF forward kinematics. It checks default and modified dimensions, recovery of the original regular arm and both wrist branches, `q1 = pi`, exact and near wrist singularities, representative solutions on the base axis, duplicate removal, unreachable targets, and rejection of non-rigid target matrices. Run `check_analytical_ik` after adding the `Matlab` folder to the path.
 
 **[dh_jacobian.m](Matlab/dh_jacobian.m)** and **[poe_jacobian.m](Matlab/poe_jacobian.m)** both accept `(q, frame, joint, model)` and return a `6 x n` matrix with linear velocity above tool angular velocity. All joints contribute. `joint` selects the point at which the tool's velocity field is evaluated; `frame` selects the DH axes used to express both base-relative velocity vectors. This does not subtract the selected frame's own motion. DH selects a DH origin, while PoE selects a physical joint origin. Points 5 (wrist center) and 6 (endpoint) coincide across the models; other matching indices need not select the same point.
 
