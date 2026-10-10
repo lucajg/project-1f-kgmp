@@ -86,6 +86,10 @@ fields = struct2cell(gs);
 parameters = vertcat(fields{:});
 dh = dh_data(gs);
 poe = poe_data(gs);
+syms a1 a2 d1 d2 d3 d4 d6 real
+dh_ad = dh;
+dh_ad.a = [a1,a2,0,0,0,0];
+dh_ad.d = [d1,d2,d3,d4,0,d6];
 cases = [0,6; 0,5; 3,5];
 max_error = 0;
 for c = 1:size(cases,1)
@@ -97,15 +101,23 @@ for c = 1:size(cases,1)
     assert(isequal(difference,sym(zeros(6))), ...
         'Symbolic DH/PoE mismatch for frame %d, point %d.',frame,point);
     fprintf('Symbolic DH-PoE: frame %d, point %d agree exactly.\n',frame,point);
+    Jdh_ad = dh_parameter_form(Jdh);
+    Jpoe_ad = dh_parameter_form(Jpoe);
+    Jdirect = dh_jacobian(qs,frame,point,dh_ad);
+    assert(isequal(simplify(expand(Jdh_ad-Jdirect)),sym(zeros(6))));
+    assert(isequal(simplify(expand(Jpoe_ad-Jdirect)),sym(zeros(6))));
+    evaluate_ad = matlabFunction(Jdh_ad,'Vars',{qs,[a1;a2;d1;d2;d3;d4;d6]});
     evaluate_dh = matlabFunction(Jdh,'Vars',{qs,parameters});
     evaluate_poe = matlabFunction(Jpoe,'Vars',{qs,parameters});
     for geometry = 1:numel(geometries)
         values = cell2mat(struct2cell(geometries{geometry}));
         dh_num = dh_data(geometries{geometry});
         poe_num = poe_data(geometries{geometry});
+        ad_values = [dh_num.a(1:2),dh_num.d([1:4,6])].';
         for sample = 1:size(Q,2)
             q = Q(:,sample);
             max_error = max([max_error, ...
+                norm(evaluate_ad(q,ad_values)-dh_jacobian(q,frame,point,dh_num),'fro'), ...
                 norm(evaluate_dh(q,values)-dh_jacobian(q,frame,point,dh_num),'fro'), ...
                 norm(evaluate_poe(q,values)-poe_jacobian(q,frame,point,poe_num),'fro')]);
         end
@@ -113,4 +125,5 @@ for c = 1:size(cases,1)
 end
 assert(max_error < 1e-10,'Symbolic evaluation disagrees with numerical models.');
 fprintf('Symbolic vs numerical Jacobians: %.3e.\n',max_error);
+fprintf('DH parameter forms agree with direct DH derivation and numerical models.\n');
 end
