@@ -1,32 +1,30 @@
-% Denavit-Hartenberg data for CuRo6R.
-% UNITS:
-%   distances: [m];
-%   angles: [rad].
-% Run dh_data, then call dh_fk(q, dh_model).
-% Base frame 0 is base_link; endpoint E is link_6, as in poe_data.
-%
-% Joint i rotates about z_(i-1). The transform from frame i to frame i-1 is
-% A_i(q_i) = Rz(theta_i + q_i) * Tz(d_i) * Tx(a_i) * Rx(alpha_i).
-% theta contains fixed offsets; q uses the same joint zeros/signs as PoE.
+function dh_model = dh_data(g)
+% Standard DH geometry: joint i rotates about z_(i-1).
+if nargin == 0
+    g = robot_dimensions();
+end
+pi_value = pi;
+if any(structfun(@(v) isa(v,'sym'),g))
+    pi_value = sym(pi);
+end
 
-robot_dimensions; % Shared named dimensions in metres.
-
-%         Joint:  1      2      3      4      5      6
-theta = [        0,     0,  pi/2,     0,     0,     0];
-d     = [    h1+h2,    w3,    h4, l4+l5,     0,    l6];
-a     = [       l2,    l3,     0,     0,     0,     0];
-alpha = [    -pi/3,  pi/2,  pi/2, -pi/2,  pi/2,     0];
+theta = [0, 0, pi_value/2, 0, 0, 0];
+d = [g.h1+g.h2, g.w3, g.h4, g.l4+g.l5, 0, g.l6];
+a = [g.l2, g.l3, 0, 0, 0, 0];
+alpha = [-pi_value/3, pi_value/2, pi_value/2, -pi_value/2, pi_value/2, 0];
 n = numel(theta);
 
-% DH origins need not coincide with the physical joint origins in PoE.
-
-% Fixed pose of endpoint E in DH frame 6: ^6 T_E.
-% The origins coincide, with x_E = z_6, y_E = x_6, z_E = y_6.
-% Append this on the RIGHT: ^0 T_E = A_1 * ... * A_6 * ^6 T_E.
-tool_transform = [0, 1, 0, 0;
-                  0, 0, 1, 0;
-                  1, 0, 0, 0;
-                  0, 0, 0, 1];
-
-dh_model = struct('n', n, 'theta', theta, 'd', d, 'a', a, ...
-    'alpha', alpha, 'tool_transform', tool_transform);
+% DH frame 6 and link_6 have the same origin but different axes.
+tool_transform = [0, 1, 0, 0; 0, 0, 1, 0; 1, 0, 0, 0; 0, 0, 0, 1];
+R_home = zeros(3,3,n+1);
+if isa(theta,'sym')
+    R_home = sym(R_home);
+end
+R_home(:,:,1) = eye(3);
+for i = 1:n
+    A = dh_transform(theta(i),0,0,alpha(i));
+    R_home(:,:,i+1) = R_home(:,:,i) * A(1:3,1:3);
+end
+dh_model = struct('n',n, 'theta',theta, 'd',d, 'a',a, ...
+    'alpha',alpha, 'tool_transform',tool_transform, 'R_home',R_home);
+end

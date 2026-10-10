@@ -1,46 +1,36 @@
-% CuRo6R home geometry in base_link. 
-% UNITS: 
-%   distances: [m];
-%   angles: [rad].
-% Run once to create model, then call poe_fk(q, poe_model) or curo6r_viewer(poe_model).
-% Endpoint E is link_6.
-
-robot_dimensions;            % Shared named dimensions in metres.
-alpha = pi/6;                 % Use 0.52359877559 to match the URDF.
-c = cos(alpha);
-s = sin(alpha);
-
-% Unit rotation axes at the home configuration, one joint per column.
-omega = zeros(3,6);
-omega(:,1) = [0; 0; 1];
-omega(:,2) = [0; c; s];
-omega(:,3) = [0; -s; c];
-omega(:,4) = [1; 0; 0];
-omega(:,5) = omega(:,3);
-omega(:,6) = omega(:,4);
-
-% Successive joint-origin offsets.
-r = zeros(3,6);
-r(:,1) = [0; 0; h1];
-r(:,2) = r(:,1) + [l2; 0; h2];
-r(:,3) = r(:,2) + l3*[1; 0; 0] + w3*[0; c; s];
-r(:,4) = r(:,3) + l4*[1; 0; 0] + h4*[0; -s; c];
-r(:,5) = r(:,4) + [l5; 0; 0];
-r(:,6) = r(:,5) + [l6; 0; 0];
-
-% Compute v = r x omega = -omega x r.
-v = zeros(3,6);
-xi_hat = zeros(4,4,6);
-for i = 1:6
-    v(:,i) = cross(r(:,i), omega(:,i));
-    w = omega(:,i);
-    omega_skew = [0 -w(3) w(2); w(3) 0 -w(1); -w(2) w(1) 0];
-    xi_hat(:,:,i) = [omega_skew v(:,i); 0 0 0 0];
+function poe_model = poe_data(g)
+% Home screw axes in base_link; endpoint E is link_6.
+if nargin == 0
+    g = robot_dimensions();
 end
-S = [omega; v];
+pi_value = pi;
+if any(structfun(@(v) isa(v,'sym'),g))
+    pi_value = sym(pi);
+end
+c = cos(pi_value/6);
+s = sin(pi_value/6);
+omega = [
+    0, 0,  0, 1,  0, 1;
+    0, c, -s, 0, -s, 0;
+    1, s,  c, 0,  c, 0
+];
 
-% Endpoint pose at q = 0.
-R0 = [1 0 0; 0 c -s; 0 s c];
-M = [R0 r(:,6); 0 0 0 1];
-
-poe_model = struct('omega', omega, 'r', r, 'S', S, 'xi_hat', xi_hat, 'M', M);
+% Cumulative physical joint-origin offsets at home.
+r = cumsum([0,    g.l2, g.l3,    g.l4,   g.l5, g.l6;
+            0,    0,    g.w3*c, -g.h4*s, 0,    0;
+            g.h1, g.h2, g.w3*s,  g.h4*c, 0,    0],2);
+v = cross(r,omega,1);
+xi_hat = zeros(4,4,6);
+if isa(r,'sym')
+    xi_hat = sym(xi_hat);
+end
+for i = 1:6
+    w = omega(:,i);
+    w_skew = [0, -w(3), w(2); w(3), 0, -w(1); -w(2), w(1), 0];
+    xi_hat(:,:,i) = [w_skew, v(:,i); 0, 0, 0, 0];
+end
+M = [1, 0, 0, r(1,6); 0, c, -s, r(2,6); 0, s, c, r(3,6); 0, 0, 0, 1];
+dh_model = dh_data(g);
+poe_model = struct('omega',omega, 'r',r, 'S',[omega;v], ...
+    'xi_hat',xi_hat, 'M',M, 'R_home',dh_model.R_home);
+end

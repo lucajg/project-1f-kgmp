@@ -3,8 +3,8 @@ function fig = curo6r_compare(poe_model,dh_model)
 % curo6r_compare builds the default models; or pass both existing model structs.
 
 if nargin == 0
-    poe_data;
-    dh_data;
+    poe_model = poe_data();
+    dh_model = dh_data();
 else
     narginchk(2,2);
 end
