@@ -35,5 +35,11 @@
   \end{minipage}%
 }
 \begin{document}
-\input{sections/dh_parameters}
+\providecommand{\DHSectionFile}{sections/dh_parameters}
+\input{\DHSectionFile}
+\providecommand{\AnalyticalIKSectionFile}{sections/analytical_ik}
+
+\newpage 
+
+\input{\AnalyticalIKSectionFile}
 \end{document}

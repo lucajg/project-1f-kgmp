@@ -1,8 +1,14 @@
 # DH report draft
 
 `report.tex` is the standalone entry point; `report.pdf` is its compiled preview.
-The two-page section consists of a convention and construction guide, a six-row
-DH table, endpoint alignment, and six vector TikZ sketches.
+The one-page section discusses the DH parameters obtained for CuRo6R: a six-row
+table with geometric justifications, two selected TikZ sketches, and the endpoint
+alignment. It assumes familiarity with DH rather than explaining the general method.
+
+The previous detailed section is preserved in `notes/dh_parameters_detailed.tex`,
+including the six-panel illustration. To compile it separately from this directory,
+use `latexmk -pdf working_notes.tex` (or `tectonic working_notes.tex`). It shares the
+main preamble and diagram sources and is not included in the main report.
 
 Compile from this directory:
 
@@ -18,9 +24,10 @@ geometry and a fixed projection (Python 3 with NumPy). Manual changes to the
 generated TikZ files are overwritten if that script is rerun.
 
 To integrate into a larger report, copy the packages, colour definitions and
-`DHPanel` macro from the preamble, then input `sections/dh_parameters.tex` from
-this directory. Remove its `clearpage` if the final report should float the
-illustration naturally. The prose does not require the standalone page header.
+frame/joint notation macros from the preamble, then input
+`sections/dh_parameters.tex` from this directory. The section has no forced page
+break; its table and figure can float naturally. The prose does not require the
+standalone page header.
 
 ## Source interpretation
 

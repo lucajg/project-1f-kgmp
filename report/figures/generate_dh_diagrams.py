@@ -77,7 +77,11 @@ class Panel:
         end = origin+v
         self.line(origin, end, 'axis,'+color)
         if labeloffset is None:
-            labeloffset = .12*v/max(np.linalg.norm(v),.001)
+            if abs(v[1]) < 1e-8:
+                # Keep horizontal-axis names off any continuing link/axis line.
+                labeloffset = [math.copysign(.10,v[0]), .18]
+            else:
+                labeloffset = .12*v/max(np.linalg.norm(v),.001)
         self.label(end+np.array(labeloffset),label,'text='+color+',fill=white,inner sep=.7pt')
 
     def frame(self, f, offsets=None, originlabel=None, lengths=(.72,.72,.72)):
@@ -89,13 +93,23 @@ class Panel:
         offset = np.array([-.12,-.28]) if originlabel is None else np.array(originlabel)
         self.label(p+offset,'$O_{'+str(f)+'}$','text=dhink,fill=white,fill opacity=.85,text opacity=1')
 
-    def dim(self, p, q, offset, label, labeloffset=(0,0)):
+    def dim(self, p, q, offset, label, label_shift=0, label_gap=.10):
+        """Place an uninterrupted dimension arrow and an aligned, offset label.
+
+        The label's lower edge sits label_gap cm above the arrow in its local
+        coordinates. Thus a vertical arrow has bottom-to-top text on its left.
+        label_shift moves the text along the arrow when nearby labels need room.
+        """
         p, q, offset = self.xy(p), self.xy(q), np.array(offset)
         for a in (p,q):
             self.line(a, a+offset, 'dhgold!55,line width=.35pt')
         self.line(p+offset, q+offset, 'dim')
-        self.label((p+q)/2+offset+np.array(labeloffset),label,
-                   'text=dhgold,fill=white,inner sep=1.8pt')
+        tangent = (q-p)/np.linalg.norm(q-p)
+        normal = np.array([-tangent[1],tangent[0]])
+        angle = math.degrees(math.atan2(tangent[1],tangent[0]))
+        position = (p+q)/2+offset+label_shift*tangent+label_gap*normal
+        self.label(position,label,
+                   f'text=dhgold,rotate={angle:.4f},anchor=south,inner sep=1pt,outer sep=0pt')
 
     def twist(self):
         i = self.i
@@ -127,10 +141,11 @@ p = Panel(1,O[0],[1.55,1.00])
 b = O[0]+D[0]*R[0,:,2]
 p.extension(O[0],b)
 p.line(p.xy(b),p.xy(O[1]),'dhgray,line width=1pt')
-p.joint(1,[.40,-.02]); p.joint(2,[.50,.25])
-p.dim(O[0],b,[-.55,0],r'$d_1=1$',[-.1,0])
+p.joint(1,[.40,-.02]); p.joint(2,[.55,-.20])
+p.dim(O[0],b,[-.55,0],r'$d_1=1$')
 p.dim(b,O[1],[0,.62],r'$a_1=0.8$')
-p.frame(0,originlabel=[-.08,-.27],lengths=(.72,.72,1.15)); p.frame(1,originlabel=[-.20,-.32])
+p.frame(0,offsets=[[.10,.18],[.08,.09],[-.24,.06]],originlabel=[-.08,-.27],lengths=(.72,.72,1.15))
+p.frame(1,originlabel=[-.20,-.32])
 p.label([4.25,.72],r'$d_1=0.5+0.5$', 'text=dhgold')
 p.save()
 
@@ -140,7 +155,7 @@ b = O[1]+D[1]*R[1,:,2]
 p.extension(O[1],b)
 p.line(p.xy(b),p.xy(O[2]),'dhgray,line width=1pt')
 p.joint(2,[-.35,-.25]); p.joint(3,[.28,-.40])
-p.dim(O[1],b,[-.47,.07],r'$d_2=1.25$',[-.03,.23])
+p.dim(O[1],b,[-.47,.07],r'$d_2=1.25$')
 p.dim(b,O[2],[0,.64],r'$a_2=2$')
 p.frame(1,originlabel=[-.30,-.63]); p.frame(2,originlabel=[-.20,-.30])
 p.save()
@@ -153,10 +168,10 @@ p.line(p.xy(b),p.xy(P[4]),'dhgray!65,line width=1pt')
 p.extension(O[2],O[3]+.6*R[2,:,2])
 p.extension(O[3],P[4]+.4*R[3,:,2])
 p.joint(3,[-.20,-.35]); p.joint(4,[.1,-.42])
-p.dim(O[2],O[3],[-.60,-.08],r'$d_3=0.75$',[-.15,0])
-p.dim(O[3],P[4],[0,-1.18],r'$1.5$')
-p.frame(2,offsets=[[.10,-.04],[.12,-.10],[.15,.06]],originlabel=[.45,-.28],lengths=(.72,.46,.72))
-p.frame(3,offsets=[[.04,.18],[-.17,.05],[.12,.06]],originlabel=[-.18,.06])
+p.dim(O[2],O[3],[-.95,-.08],r'$d_3=0.75$')
+p.dim(O[3],P[4],[0,-1.18],r'$1.5$',label_shift=.30)
+p.frame(2,offsets=[[.14,.18],[.18,-.16],[.24,.10]],originlabel=[.45,-.28],lengths=(.72,.46,.72))
+p.frame(3,offsets=[[.04,.18],[-.17,.05],[.12,.20]],originlabel=[-.18,.06])
 p.label([3.98,2.58],r'$a_3=0$', 'text=dhgold')
 p.label([3.98,4.15],r'$\theta_3^0=+90^\circ$', 'text=dhpurple')
 c = np.array([3.75,3.05])
@@ -185,9 +200,9 @@ p.extension(P[5],P[6]+.4*R[5,:,2])
 p.joint(5,[.50,.25]); p.joint(6,[0,-.43])
 c = p.xy(O[4])
 p.vector(c,R[4,:,0],r'$x_4=x_5$','dhred',[.13,.17])
-p.vector(c,R[4,:,1],r'$y_4$','dhgreen',[-.14,0])
+p.vector(c,R[4,:,1],r'$y_4$','dhgreen',[-.14,-.20])
 p.vector(c,R[4,:,2],r'$\textcolor{dhblue}{z_4}=\textcolor{dhgreen}{y_5}$','dhblue',[-.26,.12])
-p.vector(c,R[5,:,2],r'$z_5$','dhblue',[.13,.08])
+p.vector(c,R[5,:,2],r'$z_5$','dhblue',[.13,-.20])
 p.lines.append(r'\fill[dhink] '+pt(c)+' circle[radius=1.15pt];')
 p.label(c+[-.08,-.45],r'$O_4=O_5$','fill=white,text=dhink')
 p.dim(P[5],P[6],[0,-1.05],r'centres: $1.5$')
