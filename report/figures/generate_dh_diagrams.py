@@ -111,10 +111,15 @@ class Panel:
         self.label(position,label,
                    f'text=dhgold,rotate={angle:.4f},anchor=south,inner sep=1pt,outer sep=0pt')
 
+    def inset_box(self, left):
+        self.lines.append(
+            r'\path[draw=dhgray!25,fill=dhgray!3,rounded corners=2pt,line width=.3pt] '
+            +pt([left,2.18])+' rectangle '+pt([left+2.32,4.38])+';')
+
     def twist(self):
         i = self.i
         c = np.array([6.85,2.8])
-        self.lines.append(r'\path[draw=dhgray!25,fill=dhgray!3,rounded corners=2pt,line width=.3pt] (5.8,2.18) rectangle (8.12,4.38);')
+        self.inset_box(5.8)
         angle = ['-60^\\circ','+90^\\circ','+90^\\circ','-90^\\circ','+90^\\circ','0'][i-1]
         self.label([6.96,4.15],r'$\alpha_{'+str(i)+'}='+angle+'$', 'text=dhpurple')
         x, z0, z1 = R[i,:,0], R[i-1,:,2], R[i,:,2]
@@ -172,11 +177,13 @@ p.dim(O[2],O[3],[-.95,-.08],r'$d_3=0.75$')
 p.dim(O[3],P[4],[0,-1.18],r'$1.5$',label_shift=.30)
 p.frame(2,offsets=[[.14,.18],[.18,-.16],[.24,.10]],originlabel=[.45,-.28],lengths=(.72,.46,.72))
 p.frame(3,offsets=[[.04,.18],[-.17,.05],[.12,.20]],originlabel=[-.18,.06])
-p.label([3.98,2.58],r'$a_3=0$', 'text=dhgold')
+p.label([1.90,3.50],r'$a_3=0$', 'text=dhgold')
+p.inset_box(2.82)
 p.label([3.98,4.15],r'$\theta_3^0=+90^\circ$', 'text=dhpurple')
-c = np.array([3.75,3.05])
+c = np.array([3.75,2.80])
 p.vector(c,R[2,:,0],r'$x_2$','dhgray')
 p.vector(c,R[3,:,0],r'$x_3$','dhred')
+p.vector(c,R[2,:,2],r'$z_2$','dhblue',[-.13,.12])
 arc = [pt(c+.42*PROJ@(R[2,:,0]*math.cos(t)+R[2,:,1]*math.sin(t)))
        for t in np.linspace(0,PI/2,45)]
 p.lines.append(r'\draw[dhpurple,line width=.6pt,-{Latex[length=1.2mm]}] '+' -- '.join(arc)+';')

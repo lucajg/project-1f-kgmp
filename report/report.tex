@@ -28,7 +28,7 @@
 \newcommand{\jointid}[1]{\mathrm{J}_{#1}}
 \newcommand{\DHPanel}[4]{%
   \begin{minipage}[t]{0.486\linewidth}
-    {\sffamily\bfseries\color{dhink}#1}\par\vspace{1pt}
+    {\small\sffamily\bfseries\color{dhink}#1}\par\vspace{1pt}
     {\small #2}\par\vspace{1pt}
     \centering\input{figures/dh_step_#3.tex}\par
     \raggedright\small #4
@@ -42,4 +42,8 @@
 \newpage 
 
 \input{\AnalyticalIKSectionFile}
+
+\clearpage
+\appendix
+\input{sections/dh_appendix}
 \end{document}

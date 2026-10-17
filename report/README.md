@@ -4,11 +4,16 @@
 The one-page section discusses the DH parameters obtained for CuRo6R: a six-row
 table with geometric justifications, two selected TikZ sketches, and the endpoint
 alignment. It assumes familiarity with DH rather than explaining the general method.
+All six frame drawings are collected on one appendix page in
+`sections/dh_appendix.tex`, with a reference from the main DH section. The current
+draft has four pages in total, including the appendix.
 
 The previous detailed section is preserved in `notes/dh_parameters_detailed.tex`,
-including the six-panel illustration. To compile it separately from this directory,
+with the six-panel illustration now shared through the appendix. To compile the
+detailed version separately from this directory,
 use `latexmk -pdf working_notes.tex` (or `tectonic working_notes.tex`). It shares the
-main preamble and diagram sources and is not included in the main report.
+main preamble, diagram sources and appendix; its extended DH explanation is not
+included in the main report.
 
 Compile from this directory:
 
@@ -28,6 +33,32 @@ frame/joint notation macros from the preamble, then input
 `sections/dh_parameters.tex` from this directory. The section has no forced page
 break; its table and figure can float naturally. The prose does not require the
 standalone page header.
+Include `sections/dh_appendix.tex` after `\appendix` to retain the full drawing
+sequence and resolve the main section's appendix reference. The appendix also
+uses the `\DHPanel` macro defined in the preamble.
+
+## Analytical IK illustration preview
+
+`ik_illustrations.tex` compiles to a one-page preview, separate from the main
+report: `latexmk -pdf ik_illustrations.tex` (or `tectonic ik_illustrations.tex`).
+It shows one configuration, `(q1,q2,q3) = (40,25,75)` degrees, in the base frame
+and auxiliary shoulder frame, followed by the planar construction for `q2`.
+
+The reusable TikZ panels are `figures/ik_base_frame.tex`,
+`figures/ik_shoulder_frame.tex`, and `figures/ik_shoulder_projection.tex`.
+They use the report's existing colour definitions and the `arrows.meta` TikZ
+library. The first two views share the same projection and length scale.
+The base-frame panel retains a faint arm outline, while the shoulder-frame
+panel isolates the preserved axial coordinate and vector length. The planar
+panel uses two vectors and their angle; the accompanying text derives the
+scaled sine and cosine before applying `atan2`.
+
+Run `python3 figures/generate_ik_diagrams.py` from this directory to regenerate
+the three panels (Python 3 with NumPy). This overwrites manual edits to those
+generated files. The generator checks joint centres and axes against the URDF,
+the preserved shoulder-frame component and norm, and the sign of the `q2`
+rotation in the planar diagram. The preview itself compiles without Python or
+shell escape.
 
 ## Source interpretation
 
