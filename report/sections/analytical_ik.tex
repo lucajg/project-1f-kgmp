@@ -48,7 +48,7 @@ $$\begin{pmatrix}
 \end{pmatrix} = R_x\left(-\frac{\pi}{6}\right)v = \begin{pmatrix}
   c_1x_w + s_1y_w -a_1\\
   -\frac{\sqrt{3}}{2}s_1x_w+\frac{\sqrt{3}}{2}c_1y_w+\frac{1}{2}z_w-\frac{1}{2}d_1 \\
-  \frac{1}{2}s_1x_w-\frac{\sqrt{3}}{2}c_1y_w+\frac{\sqrt{3}}{2}z_w-\frac{\sqrt{3}}{2}d_1
+  \frac{1}{2}s_1x_w-\frac{1}{2}c_1y_w+\frac{\sqrt{3}}{2}z_w-\frac{\sqrt{3}}{2}d_1
 \end{pmatrix}$$
 
 In the elbow aligned frame, the vector from the elbow to the wrist center is $b_{\text{aligned}} = \begin{pmatrix}
@@ -111,24 +111,24 @@ $$\begin{pmatrix}
     X \\
     Y \\
     Z
-\end{pmatrix} = R_y(q_2) \begin{pmatrix}
+\end{pmatrix} = \begin{pmatrix}
     c_2A+s_2d_3\\
     Y \\
     -s_2A+c_2d_3
 \end{pmatrix}$$
 
-Let $C_2 = AX+d_3Z = c_2(A^2 + d_3^2),\,S_2=d_3X-Az = s_2(d_3^2+A^2)$
+Let $C_2 = AX+d_3Z = c_2(A^2 + d_3^2),\,S_2=d_3X-AZ = s_2(d_3^2+A^2)$
 
 then $q_2 = \text{atan2}(S_2,C_2)$
 
 To solve q1 we will construct a degree-4 polynomial.
 
-First note that $X^2+Y^2+Z^2 = ||R_x\left(-\frac{\pi}{6}\right)v|| = ||v||$.
+First note that $X^2+Y^2+Z^2 = ||R_x\left(-\frac{\pi}{6}\right)v||^2 = ||v||^2$.
 
 $$ \implies X^2+Y^2+Z^2 = (c_1x_w+s_1y_w-a_1)^2+(-s_1x_w+c_1y_w)^2+(z_w-d_1)^2$$
 
-$$ = (c_1x_w+s_1y_w)^2 - 2c_1x_wa_1 - 2s_1y_wa_1 + a_1^2 + s_1^2x_w^2 - 2s_1c_1x_wy_ww + c_1^2y_w^2 + z_w^2 - 2z_wd_1 + d_1^2 $$
-$$ = c_1^2x_w^2 + 2c_1s_1x_wy_w + s_1^2y_w^2 - 2c_1x_wa_1 - 2s_1y_wa_1 + a_1^2 + s_1^2x_w^2 - 2s_1c_1x_wy_ww + c_1^2y_w^2 + z_w^2 - 2z_wd_1 + d_1^2 $$
+$$ = (c_1x_w+s_1y_w)^2 - 2c_1x_wa_1 - 2s_1y_wa_1 + a_1^2 + s_1^2x_w^2 - 2s_1c_1x_wy_w + c_1^2y_w^2 + z_w^2 - 2z_wd_1 + d_1^2 $$
+$$ = c_1^2x_w^2 + 2c_1s_1x_wy_w + s_1^2y_w^2 - 2c_1x_wa_1 - 2s_1y_wa_1 + a_1^2 + s_1^2x_w^2 - 2s_1c_1x_wy_w + c_1^2y_w^2 + z_w^2 - 2z_wd_1 + d_1^2 $$
 $$ = x_w^2 + y_w^2 - 2x_wc_1a_1 - 2y_ws_1a_1 + a_1^2 + z_w^2 -2z_wd_1 + d_1^2$$
 
 which happens to be a linear function of $(c_1,s_1)$.
