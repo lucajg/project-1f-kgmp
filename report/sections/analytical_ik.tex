@@ -19,7 +19,9 @@ along the tool's $x$ axis, the target wrist centre is
 \end{equation}
 Throughout, $c_i=\cos q_i$ and $s_i=\sin q_i$.
 
-\textbf{1. Express the arm geometry in a shoulder-centred frame.}
+\subsubsection*{Derivation}
+
+\textbf{1. Relate the target wrist position to the three arm angles.}
 For a candidate $q_1$, undo the base rotation, translate to the shoulder at
 $s=(a_1,0,d_1)^T$, and undo the fixed tilt $\gamma=\pi/6$.
 The resulting auxiliary frame follows the base rotation and fixed tilt, but
@@ -46,11 +48,13 @@ Applying the shoulder rotation maps their sum into the auxiliary frame:
        \end{pmatrix}.
  \label{eq:ik-arm-geometry}
 \end{equation}
-These frames differ from the DH frames: the geometric elbow rotation is $q_3$,
-whereas the DH parameter is $\theta_3=q_3+\pi/2$.
+The rotation \(R_z(q_3)\) above is expressed using the URDF link frames, with \(q_3=0\) 
+at the home configuration. The DH frames use a different reference orientation: at home, 
+their angular parameter is already \(\theta_3=\pi/2\). Consequently, \(\theta_3=q_3+\pi/2\), 
+whereas the rotation in this geometric derivation uses \(q_3\) directly.
 
-\textbf{2. Eliminate the shoulder angle.}
-Rotation about $y$ preserves both the $y$ component and the squared length.
+\textbf{2. Express $\sin q_3$ and $\cos q_3$ as functions of $q_1$.}
+Rotation about $y$ preserves both the $y$ component and the norm.
 Equation~\eqref{eq:ik-arm-geometry} therefore gives two relations independent of $q_2$:
 \begin{equation}
  \begin{aligned}
@@ -66,11 +70,12 @@ Setting $K=d_2^2-a_2^2-d_3^2-d_4^2$ yields
  \qquad c_3=\frac{N+K-2d_2Y}{2a_2d_4}.
  \label{eq:ik-elbow-functions}
 \end{equation}
-Here $a_2=2$ and $d_4=2.5$ are nonzero. These expressions determine $s_3$ and
-$c_3$ for each candidate $q_1$; enforcing $s_3^2+c_3^2=1$ will determine which
-candidates are admissible.
+Here $a_2=2$ and $d_4=2.5$ are nonzero. For a trial value of \(q_1\), these expressions 
+give the required values of \(\sin q_3\) and \(\cos q_3\). They correspond to 
+a real elbow angle only if \(s_3^2+c_3^2=1\). This consistency condition provides 
+the equation used to determine \(q_1\).
 
-\textbf{3. Reduce the base-angle problem to a quartic.}
+\textbf{3. Determine the candidate base angles $q_1$.}
 Since $R_x(-\gamma)$ preserves the norm,
 $N=\|r(q_1)\|^2=\|R_z(-q_1)p_w-s\|^2$. Defining
 $N_0=x_w^2+y_w^2+h^2+a_1^2$ gives the compact expression
@@ -104,15 +109,16 @@ Multiplying \eqref{eq:ik-base-constraint} by $D^2$ gives
        -4a_2^2d_4^2D^2=0.}
  \label{eq:ik-quartic}
 \end{equation}
-Each quantity being squared is quadratic in $t$, so $P$ has degree at most four,
-generically four. Every real root supplies a candidate $q_1=2\arctan t$.
-The angle $q_1=\pi$ must also be checked in the original constraint: it corresponds
-to $t=\infty$ and is absent from the finite half-angle parametrisation.
+Each quantity being squared is quadratic in $t$, so $P$ has degree at most four.
+Every real root supplies a candidate $q_1=2\arctan t$.
+The substitution $t=\tan(q_1/2)$ is undefined at $q_1=\pi$, so this angle is not
+represented by any finite root of $P(t)$. To avoid missing a solution, we test
+$q_1=\pi$ separately in \eqref{eq:ik-base-constraint} and retain it only if that
+equation is satisfied.
 
-\textbf{4. Recover and validate the arm configurations.}
+\textbf{4. Recover $q_2$ and $q_3$ for each candidate $q_1$.}
 For each candidate $q_1$, evaluate \eqref{eq:ik-shoulder-coordinates} and
-\eqref{eq:ik-elbow-functions}, then set
-$q_3=\operatorname{atan2}(s_3,c_3)$ and $A=a_2+d_4\cos q_3$.
+\eqref{eq:ik-elbow-functions}, then define $A=a_2+d_4c_3$.
 The remaining components of \eqref{eq:ik-arm-geometry} are
 \begin{equation}
  X=c_2A+s_2d_3,\qquad Z=-s_2A+c_2d_3.
@@ -127,14 +133,29 @@ Thus
  \qquad q_2=\operatorname{atan2}(S_2,C_2).
  \label{eq:ik-shoulder-recovery}
 \end{equation}
-The common factor is positive because $d_3=0.75$, so no division is needed
-before applying $\operatorname{atan2}$.
+The common factor is positive, so no division is needed
+before applying $\operatorname{atan2}$. The elbow angle is recovered as
+$q_3=\operatorname{atan2}(s_3,c_3)$. Since $A$ uses $c_3$ directly, $q_2$ and $q_3$
+can be computed in either order.
 
-The solution order is therefore $q_1\to q_3\to q_2$. All real-root candidates
-are retained for checking, rather than selecting one branch. Each recovered
-triple is verified through wrist-centre forward kinematics; angles are
-represented in $[-\pi,\pi]$, matching the URDF limits, and duplicates are removed
-modulo $2\pi$. The remaining arm configurations are passed to the wrist-orientation
-problem. If leading polynomial coefficients vanish, the degree reduces; if
-$P\equiv0$, $q_1$ is free and a representative of the continuous family can be
-chosen before back-substitution and validation.
+If leading polynomial coefficients vanish, the degree reduces.
+For this robot, \(P\equiv0\) occurs when the target wrist centre is a reachable point on the base rotation axis. 
+At such a position, \(q_1\) is arbitrary, yielding a continuous family of arm configurations.
+
+\subsubsection*{Practical evaluation}
+
+Given $(R_d,p_d)$, compute $p_w$ from \eqref{eq:ik-wrist-target}, followed by
+$h$, $K$ and $N_0$, and form $P$ using \eqref{eq:ik-polynomial-numerators}--\eqref{eq:ik-quartic}.
+For $P\not\equiv0$, collect $q_1=2\arctan t$ from every real root and test
+$q_1=\pi$ separately in \eqref{eq:ik-base-constraint}; for $P\equiv0$, choose
+any $q_1$, for example $0$, to represent the continuous family.
+For each candidate, evaluate $(X,Y,Z)$ from \eqref{eq:ik-shoulder-coordinates},
+set $N=X^2+Y^2+Z^2$, obtain $(s_3,c_3)$ from \eqref{eq:ik-elbow-functions},
+and set $A=a_2+d_4c_3$. Then compute
+\[
+ q_2=\operatorname{atan2}(d_3X-AZ,\,AX+d_3Z),
+ \qquad q_3=\operatorname{atan2}(s_3,c_3).
+\]
+Check each triple against the target wrist position using forward kinematics,
+represent angles in $[-\pi,\pi]$ and remove duplicates modulo $2\pi$.
+Pass the valid arm configurations to the wrist-orientation problem.
