@@ -1,0 +1,39 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[margin=18mm,headheight=13pt,headsep=6mm,footskip=9mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array,tabularx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc}
+\usepackage{caption,fancyhdr,microtype}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=blue!50!black]{hyperref}
+\hypersetup{pdftitle={CuRo6R -- Denavit-Hartenberg description},pdfsubject={Project 1F: six-step DH frame assignment}}
+\definecolor{dhink}{HTML}{243747}
+\definecolor{dhblue}{HTML}{2164A1}
+\definecolor{dhred}{HTML}{B84338}
+\definecolor{dhgreen}{HTML}{337A55}
+\definecolor{dhgold}{HTML}{A66816}
+\definecolor{dhpurple}{HTML}{79509A}
+\definecolor{dhgray}{HTML}{78838C}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily CuRo6R\enspace |\enspace Kinematic modelling}
+\fancyhead[R]{\small\sffamily Project 1F}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\captionsetup{font=small,labelfont=bf}
+\newcommand{\frameid}[1]{\{#1\}}
+\newcommand{\jointid}[1]{\mathrm{J}_{#1}}
+\newcommand{\DHPanel}[4]{%
+  \begin{minipage}[t]{0.486\linewidth}
+    {\sffamily\bfseries\color{dhink}#1}\par\vspace{1pt}
+    {\small #2}\par\vspace{1pt}
+    \centering\input{figures/dh_step_#3.tex}\par
+    \raggedright\small #4
+  \end{minipage}%
+}
+\begin{document}
+\input{sections/dh_parameters}
+\end{document}

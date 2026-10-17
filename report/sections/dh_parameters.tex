@@ -1,0 +1,145 @@
+\section{DH description}
+\label{sec:dh}
+
+The six revolute joints are described using the \emph{standard} DH convention.
+Frame $\frameid{0}$ coincides with \texttt{base\_link}, and $q_i=0$ denotes the
+URDF home configuration. The endpoint $E$ is \texttt{link\_6}.
+For each step $i$, the transform from frame $\frameid{i-1}$ to frame $\frameid{i}$ is
+\begin{equation}
+ {}^{i-1}\!T_i
+ =R_z(\theta_i)\,T_z(d_i)\,T_x(a_i)\,R_x(\alpha_i),
+ \qquad \theta_i=q_i+\theta_i^0 .
+ \label{eq:dh-convention}
+\end{equation}
+Joint $i$ rotates about $z_{i-1}$. For $i<6$, the new axis $z_i$
+lies on joint $i+1$; the terminal axis $z_6$ is chosen parallel to $z_5$.
+DH frame numbers therefore differ from physical joint numbers.
+
+\textbf{How to read one step.}
+Choose $x_i$ along a common normal to $z_{i-1}$ and $z_i$. Its intersection
+with $z_i$ defines $O_i$. If two distinct axes intersect, their common-normal length is
+zero and $x_i$ is perpendicular to both axes through their intersection.
+For coincident axes, the origin and transverse $x$ axis are free; here the last
+origin is the endpoint.
+Set $y_i=z_i\times x_i$ to complete a right-handed frame. The four parameters
+then have the following geometric meaning:
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}c l X@{}}
+\toprule
+Parameter & Measured about / along & Construction from $\frameid{i-1}$ to $\frameid{i}$ \\
+\midrule
+$\theta_i$ & about $z_{i-1}$ & Turn $x_{i-1}$ towards $x_i$. \\
+$d_i$ & along $z_{i-1}$ & Move from $O_{i-1}$ to the foot of the common normal. \\
+$a_i$ & along $x_i$ & Follow the common normal to $O_i$. \\
+$\alpha_i$ & about $x_i$ & Turn $z_{i-1}$ towards $z_i$. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+Translations are signed along the indicated positive axes; rotations follow the
+right-hand rule. Figure~\ref{fig:dh-steps} shows the construction at $q=0$.
+
+\begin{table}[h!]
+\centering
+\caption{Six DH steps. Lengths are in metres; angular constants are in radians.}
+\label{tab:dh}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{@{}c c c c c X@{}}
+\toprule
+$i$ & $d_i$ & $\theta_i$ & $\alpha_i$ & $a_i$ & Geometric construction at home \\
+\midrule
+1 & $1$ & $q_1$ & $-\pi/3$ & $0.8$
+  & Rise $0.5+0.5$ from the base, then move $0.8$ along $x_1$ to joint 2.
+    Its axis gives a $-60^\circ$ twist. \\
+2 & $1.25$ & $q_2$ & $+\pi/2$ & $2$
+  & Move $1.25$ along joint 2's axis and $2$ along $x_2$ to joint 3;
+    twist by $+90^\circ$. \\
+3 & $0.75$ & $q_3+\pi/2$ & $+\pi/2$ & $0$
+  & Extend joints 3 and 4's axes to their intersection $O_3$.
+    Turn $x_2$ by $+90^\circ$ to select $x_3$; no common-normal translation is needed. \\
+4 & $2.5$ & $q_4$ & $-\pi/2$ & $0$
+  & From $O_3$, follow joint 4's axis by $1.5+1$ to the wrist centre $O_4$;
+    twist by $-90^\circ$. \\
+5 & $0$ & $q_5$ & $+\pi/2$ & $0$
+  & Joints 5 and 6's axes meet at the wrist centre.
+    Keep $O_5=O_4$ and twist by $+90^\circ$. \\
+6 & $1.5$ & $q_6$ & $0$ & $0$
+  & Follow joint 6's axis from the wrist centre to the endpoint.
+    Choose $z_6=z_5$ and no fixed twist. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Frame origins versus joint centres.}
+A DH origin lies on the selected joint axis but need not coincide with a URDF
+joint origin. In particular, $O_3$ lies $1.5$ m before the
+physical centre of joint 4. This distance enters $d_4$, giving $d_4=1.5+1=2.5$ m,
+while $a_3=0$. Similarly, $d_5=0$ even though the centres of joints 5 and 6 are
+$1.5$ m apart: the two axes already intersect at $O_4=O_5$.
+
+\textbf{Endpoint alignment.}
+Frame $\frameid{6}$ and the URDF endpoint have the same origin but different axes:
+$x_E=z_6$, $y_E=x_6$ and $z_E=y_6$. Hence the forward kinematics uses the fixed
+alignment on the right:
+\begin{equation}
+ {}^0T_E=\left(\prod_{i=1}^{6}{}^{i-1}\!T_i\right){}^6T_E,
+ \qquad
+ {}^6T_E=\begin{bmatrix}
+ 0&1&0&0\\0&0&1&0\\1&0&0&0\\0&0&0&1
+ \end{bmatrix}.
+ \label{eq:dh-tool}
+\end{equation}
+
+\clearpage
+\begin{figure}[p]
+\centering
+{\large\sffamily\bfseries\color{dhink}The six frame-to-frame constructions}\par
+\vspace{4pt}
+{\small Home configuration ($q=0$), with a fixed viewing direction throughout.}\par
+\vspace{7pt}
+
+\DHPanel{1\quad Base to shoulder: $\frameid{0}\to\frameid{1}$}
+ {$d_1=1,\quad\theta_1=q_1,\quad\alpha_1=-60^\circ,\quad a_1=0.8$}{1}
+ {The full base height is $1$ m. The $30^\circ$ URDF roll of joint 2 gives a
+ $-60^\circ$ DH twist because its local axis is $y$.}
+\hfill
+\DHPanel{2\quad Shoulder to elbow: $\frameid{1}\to\frameid{2}$}
+ {$d_2=1.25,\quad\theta_2=q_2,\quad\alpha_2=90^\circ,\quad a_2=2$}{2}
+ {The $x$ axes remain parallel. The offset along $z_1$ and the common normal
+ along $x_2$ locate $O_2$ on joint 3.}
+
+\vspace{10pt}
+\DHPanel{3\quad Axis intersection: $\frameid{2}\to\frameid{3}$}
+ {$d_3=0.75,\quad\theta_3=q_3+90^\circ,\quad\alpha_3=90^\circ,\quad a_3=0$}{3}
+ {$O_3$ is the intersection of the extended axes. Choosing $x_3=y_2$
+ explains the fixed $+90^\circ$ offset in $\theta_3$.}
+\hfill
+\DHPanel{4\quad Reach the wrist: $\frameid{3}\to\frameid{4}$}
+ {$d_4=2.5,\quad\theta_4=q_4,\quad\alpha_4=-90^\circ,\quad a_4=0$}{4}
+ {The distance starts at $O_3$, rather than the joint-4 cylinder.
+ The two physical offsets add: $d_4=1.5+1$.}
+
+\vspace{10pt}
+\DHPanel{5\quad Coincident origins: $\frameid{4}\to\frameid{5}$}
+ {$d_5=0,\quad\theta_5=q_5,\quad\alpha_5=90^\circ,\quad a_5=0$}{5}
+ {The origins coincide, although the joint centres do not.
+ Here $x_4=x_5$ and the extended joint-6 axis passes through the wrist centre.}
+\hfill
+\DHPanel{6\quad Wrist to endpoint: $\frameid{5}\to\frameid{6}$}
+ {$d_6=1.5,\quad\theta_6=q_6,\quad\alpha_6=0,\quad a_6=0$}{6}
+ {At home the two frames have parallel axes. $O_6=O_E$;
+ the fixed endpoint alignment changes orientation only.}
+
+\vspace{9pt}
+\caption{Standard DH frame assignment. Cylinders denote physical revolute joints
+ $\jointid{i}$; dots mark DH origins $O_i$.
+ \textcolor{dhred}{$x$}, \textcolor{dhgreen}{$y$} and \textcolor{dhblue}{$z$}
+ axes retain their colours. Dashed lines extend joint axes;
+gold dimensions locate the origins. Angle sketches show $\theta_3^0$ and the signed twist
+ $z_{i-1}\to z_i$ about $+x_i$ (with the first direction translated to the same
+ point). Cylinder orientation, size and viewing direction are reused between panels;
+ drawings are schematic.}
+\label{fig:dh-steps}
+\end{figure}
