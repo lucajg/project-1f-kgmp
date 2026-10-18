@@ -1,0 +1,55 @@
+\section{Jacobian and singularities}
+\label{sec:jacobian}
+
+\textbf{Construction from the PoE model.}
+The MATLAB PoE routine keeps the intermediate transforms. These give each
+joint's current unit direction $w_i$ and a point $p_i$ on its axis, both in
+\texttt{base\_link}. For a revolute joint, the Jacobian column is
+\begin{equation}
+ {}^0J_k(:,i)=
+ \begin{pmatrix}w_i\times(p_k-p_i)\\w_i\end{pmatrix},
+ \qquad i=1,\ldots,6.
+ \label{eq:jacobian-column}
+\end{equation}
+The upper rows give linear velocity and the lower rows give angular
+velocity. We use $k=6$ for the endpoint. Choosing $k=5$ instead refers the
+same tool motion to the wrist centre.
+
+\textbf{Wrist Jacobian.}
+Here ${}^3J_5$ denotes this full Jacobian at the wrist centre, expressed
+along the DH frame-3 axes. Both velocity blocks are rotated by
+$({}^0R_3)^T$; the velocities remain relative to the base.
+All three wrist axes pass through $p_5$, so their linear columns vanish.
+With $c_i=\cos q_i$ and $s_i=\sin q_i$, the result has the form
+\begin{equation}
+ {}^3J_5=\begin{pmatrix}A&0\\C&B\end{pmatrix},\qquad
+ B=\begin{pmatrix}
+ 0&-s_4&c_4s_5\\
+ 0&c_4&s_4s_5\\
+ 1&0&c_5
+ \end{pmatrix}.
+ \label{eq:jacobian-wrist}
+\end{equation}
+The wrist subchain consists of the last three columns. Here $A$ maps the
+first three joint rates to wrist-centre velocity, and $B$ maps the wrist
+rates to angular velocity.
+
+\textbf{Symbolic and numerical routes.}
+The same MATLAB function accepts numerical or symbolic inputs. Numerical
+inputs evaluate the Jacobian at a chosen configuration. Symbolic inputs
+give an exact expression, from which the determinant is obtained.
+For the full endpoint Jacobian $J={}^0J_6$, it factors as
+\begin{equation}
+ \det J(q)=\sin q_5\,D(q_2,q_3),\qquad D(q_2,q_3)=-\det A.
+ \label{eq:jacobian-determinant}
+\end{equation}
+Moving the velocity reference from the wrist centre to the endpoint does
+not change this determinant. The wrist factor vanishes at $q_5=0$ or
+$\pi$ modulo $2\pi$. Axes 4 and 6 then lie on the same line, so one
+independent rotation is lost. The arm factor depends jointly on $q_2$ and
+$q_3$. Thus the wrist and arm conditions separate, while the arm condition
+must be studied in the $(q_2,q_3)$ plane.
+
+A full configuration is regular only when both factors are nonzero.
+For numerical checks, the smallest singular value of the full $J$ gives
+a measure of proximity to a singularity.
