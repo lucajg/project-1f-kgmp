@@ -25,13 +25,13 @@ Throughout, $c_i=\cos q_i$ and $s_i=\sin q_i$.
 For a candidate $q_1$, undo the base rotation, translate to the shoulder at
 $s=(a_1,0,d_1)^T$, and undo the fixed tilt $\gamma=\pi/6$.
 The resulting auxiliary frame follows the base rotation and fixed tilt, but
-not the joint-2 rotation. With $h=z_w-d_1$ and $c_\gamma=\sqrt{3}/2$,
+not the joint-2 rotation. With $h=z_w-d_1$ and $(c_\gamma,s_\gamma)=(\sqrt{3}/2,1/2)$,
 \begin{equation}
  \begin{aligned}
  r(q_1)&:=R_x(-\gamma)\bigl(R_z(-q_1)p_w-s\bigr)=(X,Y,Z)^T,\\
  X&=c_1x_w+s_1y_w-a_1,\\
- Y&=c_\gamma(-s_1x_w+c_1y_w)+\tfrac12h,\\
- Z&=\tfrac12(s_1x_w-c_1y_w)+c_\gamma h.
+ Y&=c_\gamma(-s_1x_w+c_1y_w)+s_\gamma h,\\
+ Z&=-s_\gamma(-s_1x_w+c_1y_w)+c_\gamma h.
  \end{aligned}
  \label{eq:ik-shoulder-coordinates}
 \end{equation}
