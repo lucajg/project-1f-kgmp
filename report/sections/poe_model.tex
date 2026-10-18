@@ -1,0 +1,81 @@
+\subsection{Product of exponentials model}
+\label{sec:poe}
+
+The product of exponentials (PoE) model uses the joint axes at the home
+configuration $q=0$. For each joint, $\omega_i$ is its unit axis direction
+and $r_i$ is its physical origin. All vectors are expressed in
+\texttt{base\_link}; the endpoint is \texttt{link\_6}, as in the DH model.
+
+\textbf{Axis directions.}
+The rotation axes were identified visually in a URDF view at home.
+Their positive directions follow the URDF joint convention.
+The fixed tilt $\gamma=\pi/6$ gives the sine and cosine components of the
+tilted axes. In particular, $\omega_2=R_x(\gamma)e_y$ and
+$\omega_3=\omega_5=R_x(\gamma)e_z$, where $e_x,e_y,e_z$ are the base unit vectors.
+
+\textbf{Joint origins.}
+Starting at joint 1, each origin was found by adding the relevant robot
+dimensions to the preceding origin. Each offset must first be expressed
+in the base frame. With lengths in metres, this gives
+\begin{equation}
+ \begin{aligned}
+ r_1&=\tfrac12 e_z,
+ & r_2&=r_1+\tfrac45 e_x+\tfrac12 e_z,\\
+ r_3&=r_2+2e_x+\tfrac54\omega_2,
+ & r_4&=r_3+\tfrac32 e_x+\tfrac34\omega_3,\\
+ r_5&=r_4+e_x,
+ & r_6&=r_5+\tfrac32 e_x.
+ \end{aligned}
+ \label{eq:poe-origins}
+\end{equation}
+For example, the offset from joint 2 to joint 3 combines a 2 m step along
+the base $x$ axis and a 1.25 m step along joint 2's tilted axis.
+The resulting vectors are listed in Table~\ref{tab:poe-screws}, together
+with $v_i=-\omega_i\times r_i$.
+
+\begin{table}[!ht]
+\centering
+\caption{Home screw data. Each vector is written as a row; $r_i$ uses the physical
+joint origin. Lengths are in metres.}
+\label{tab:poe-screws}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.55}
+\begin{tabular}{@{}c c c c@{}}
+\toprule
+$i$ & $\omega_i^T$ & $r_i^T$ & $v_i^T$ \\
+\midrule
+1 & $(0,0,1)$ & $(0,0,\tfrac12)$ & $(0,0,0)$ \\
+2 & $(0,\tfrac{\sqrt3}{2},\tfrac12)$ & $(\tfrac45,0,1)$
+  & $(-\tfrac{\sqrt3}{2},-\tfrac25,\tfrac{2\sqrt3}{5})$ \\
+3 & $(0,-\tfrac12,\tfrac{\sqrt3}{2})$ & $(\tfrac{14}{5},\tfrac{5\sqrt3}{8},\tfrac{13}{8})$
+  & $(\tfrac74,-\tfrac{7\sqrt3}{5},-\tfrac75)$ \\
+4 & $(1,0,0)$ & $(\tfrac{43}{10},\tfrac{5\sqrt3-3}{8},\tfrac{13+3\sqrt3}{8})$
+  & $(0,\tfrac{13+3\sqrt3}{8},\tfrac{3-5\sqrt3}{8})$ \\
+5 & $(0,-\tfrac12,\tfrac{\sqrt3}{2})$
+  & $(\tfrac{53}{10},\tfrac{5\sqrt3-3}{8},\tfrac{13+3\sqrt3}{8})$
+  & $(\tfrac74,-\tfrac{53\sqrt3}{20},-\tfrac{53}{20})$ \\
+6 & $(1,0,0)$ & $(\tfrac{34}{5},\tfrac{5\sqrt3-3}{8},\tfrac{13+3\sqrt3}{8})$
+  & $(0,\tfrac{13+3\sqrt3}{8},\tfrac{3-5\sqrt3}{8})$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Forward model.}
+Each pair $(\omega_i,v_i)$ defines a screw axis and its matrix form:
+\begin{equation}
+ \xi_i=\begin{pmatrix}\omega_i\\v_i\end{pmatrix},\qquad
+ \widehat\xi_i=\begin{pmatrix}[\omega_i]_\times&v_i\\0^T&0\end{pmatrix},
+ \qquad [\omega_i]_\times p=\omega_i\times p.
+ \label{eq:poe-screw}
+\end{equation}
+The endpoint has orientation $R_x(\gamma)$ and position $r_6$ at home.
+This gives its home pose $M$ and the complete forward kinematics:
+\begin{equation}
+ M=\begin{pmatrix}R_x(\gamma)&r_6\\0^T&1\end{pmatrix},\qquad
+ \boxed{{}^0T_E(q)=e^{\widehat\xi_1q_1}e^{\widehat\xi_2q_2}
+ \cdots e^{\widehat\xi_6q_6}M.}
+ \label{eq:poe-fk}
+\end{equation}
+The screw axes stay at their home values; the exponentials are multiplied
+in joint order.

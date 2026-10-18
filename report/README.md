@@ -1,19 +1,27 @@
-# DH report draft
+# Kinematics report draft
 
 `report.tex` is the standalone entry point; `report.pdf` is its compiled preview.
-The one-page section discusses the DH parameters obtained for CuRo6R: a six-row
-table with geometric justifications, two selected TikZ sketches, and the endpoint
-alignment. It assumes familiarity with DH rather than explaining the general method.
-All six frame drawings are collected on one appendix page in
-`sections/dh_appendix.tex`, with a reference from the main DH section. The current
-draft has four pages in total, including the appendix.
+The report groups the DH description, the PoE model, and their shared verification
+under **Forward kinematics models**. Separate sections cover the Jacobian and
+singularities, then analytical inverse kinematics. The DH subsection gives the parameter table and
+endpoint alignment. All six frame drawings are collected in
+`sections/dh_appendix.tex`, with references from the main DH section.
+The PoE section explains how the axis directions were identified in the URDF
+view and how the joint origins were found by adding robot dimensions in the
+base frame. It retains the screw data and the complete forward model.
 
-The previous detailed section is preserved in `notes/dh_parameters_detailed.tex`,
-with the six-panel illustration now shared through the appendix. To compile the
-detailed version separately from this directory,
+The detailed explanations are preserved in `notes/dh_parameters_detailed.tex`
+and `notes/poe_model_detailed.tex`. The latter retains the screw-axis derivation,
+Rodrigues' formula and the expanded home pose. Shared verification is in
+`sections/fk_verification.tex`, with full details preserved in
+`notes/fk_verification_detailed.tex`.
+The compact Jacobian section is in `sections/jacobian.tex`.
+`notes/jacobian_detailed.tex` adds the intermediate-axis construction,
+the determinant argument, and the explicit arm factor.
+To compile the detailed version separately from this directory,
 use `latexmk -pdf working_notes.tex` (or `tectonic working_notes.tex`). It shares the
-main preamble, diagram sources and appendix; its extended DH explanation is not
-included in the main report.
+main preamble, diagram sources and appendix; its extended DH and PoE explanations
+are not included in the main report.
 
 Compile from this directory:
 
@@ -22,7 +30,10 @@ latexmk -pdf report.tex
 # Alternatively: pdflatex report.tex, twice; or tectonic report.tex.
 ```
 
-The prose is in `sections/dh_parameters.tex`. The six diagrams in `figures/` are
+The main prose is in `sections/dh_parameters.tex`, `sections/poe_model.tex`,
+`sections/fk_verification.tex`, `sections/jacobian.tex`, and
+`sections/analytical_ik.tex`.
+The six DH diagrams in `figures/` are
 ordinary editable TikZ sources, requiring no external images or shell escape.
 `figures/generate_dh_diagrams.py` regenerates them from shared home-frame
 geometry and a fixed projection (Python 3 with NumPy). Manual changes to the
@@ -64,7 +75,9 @@ shell escape.
 
 The handwritten `DH Parameters Project.pdf`, the project brief, and the existing
 `Matlab/dh_data.m`, `Matlab/robot_dimensions.m` and `CuRo6R/CuRo6R.urdf` were used.
-The brief supplies context; this draft covers only the requested DH section.
+The brief supplies context for the DH description. The PoE section also uses the
+handwritten `Product Of Exponentials.pdf`, the construction method described by
+the author, and `Matlab/poe_data.m`.
 
 - Standard DH row i maps frame i-1 to frame i; joint i rotates about z_(i-1).
 - With frame 0 at `base_link`, d1 is 1 m, combining the two 0.5 m heights.
@@ -96,3 +109,8 @@ The maximum position residual was 4.98e-11 m and the maximum rotation-matrix
 Frobenius residual was 1.18e-11, consistent with the URDF roll's decimal
 truncation. All physical joint centres were also checked to lie on the
 corresponding DH joint-axis lines. The checks concern the DH section only.
+
+The PoE screw data were checked symbolically, then the PoE, DH and direct URDF
+forward models were compared at 514 configurations. The detailed verification subsection
+records the configuration set and residuals. The successive-origin formulas in
+the compact section were also checked to reproduce all six table entries exactly.

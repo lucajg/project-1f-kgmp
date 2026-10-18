@@ -1,0 +1,113 @@
+\subsection{Product of exponentials model}
+\label{sec:poe}
+
+The product of exponentials (PoE) describes the robot through its joint axes
+at the home configuration. All vectors below are expressed in
+\texttt{base\_link}, with $q=0$ and endpoint \texttt{link\_6} as in the DH model.
+
+\textbf{1. Describe each revolute joint by a screw axis.}
+Let $\omega_i$ be the unit direction of joint $i$ and let $r_i$ be a point on
+its axis at home. With unit joint speed, a point $p$ has velocity
+$\omega_i\times(p-r_i)=\omega_i\times p+v_i$. This gives the six-vector
+$\xi_i$ and its matrix form:
+\begin{equation}
+ v_i=-\omega_i\times r_i,\qquad
+ \xi_i=\begin{pmatrix}\omega_i\\v_i\end{pmatrix},\qquad
+ \widehat\xi_i=\begin{pmatrix}[\omega_i]_\times&v_i\\0^T&0\end{pmatrix}.
+ \label{eq:poe-screw}
+\end{equation}
+Here $[\omega]_\times$ represents the cross product:
+\begin{equation}
+ [\omega]_\times=
+ \begin{pmatrix}
+ 0&-\omega_z&\omega_y\\
+ \omega_z&0&-\omega_x\\
+ -\omega_y&\omega_x&0
+ \end{pmatrix},
+ \qquad [\omega]_\times p=\omega\times p.
+ \label{eq:poe-skew}
+\end{equation}
+Any point on the same axis gives the same $v_i$: adding a multiple of
+$\omega_i$ to $r_i$ does not change the cross product.
+
+\textbf{2. Find the six axes at home.}
+The fixed tilt $\gamma=\pi/6$ maps the local $y$ and $z$ axes to
+$(0,\sqrt{3}/2,1/2)^T$ and $(0,-1/2,\sqrt{3}/2)^T$.
+The points $r_i$ follow by adding the URDF joint offsets in the base frame.
+For example, $r_3=r_2+(2,0,0)^T+(5/4)\omega_2$.
+Applying \eqref{eq:poe-screw} then gives Table~\ref{tab:poe-screws}.
+
+\begin{table}[!ht]
+\centering
+\caption{Home screw data. Each vector is written as a row; $r_i$ uses the physical
+joint origin. Lengths are in metres.}
+\label{tab:poe-screws}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.55}
+\begin{tabular}{@{}c c c c@{}}
+\toprule
+$i$ & $\omega_i^T$ & $r_i^T$ & $v_i^T$ \\
+\midrule
+1 & $(0,0,1)$ & $(0,0,\tfrac12)$ & $(0,0,0)$ \\
+2 & $(0,\tfrac{\sqrt3}{2},\tfrac12)$ & $(\tfrac45,0,1)$
+  & $(-\tfrac{\sqrt3}{2},-\tfrac25,\tfrac{2\sqrt3}{5})$ \\
+3 & $(0,-\tfrac12,\tfrac{\sqrt3}{2})$ & $(\tfrac{14}{5},\tfrac{5\sqrt3}{8},\tfrac{13}{8})$
+  & $(\tfrac74,-\tfrac{7\sqrt3}{5},-\tfrac75)$ \\
+4 & $(1,0,0)$ & $(\tfrac{43}{10},\tfrac{5\sqrt3-3}{8},\tfrac{13+3\sqrt3}{8})$
+  & $(0,\tfrac{13+3\sqrt3}{8},\tfrac{3-5\sqrt3}{8})$ \\
+5 & $(0,-\tfrac12,\tfrac{\sqrt3}{2})$
+  & $(\tfrac{53}{10},\tfrac{5\sqrt3-3}{8},\tfrac{13+3\sqrt3}{8})$
+  & $(\tfrac74,-\tfrac{53\sqrt3}{20},-\tfrac{53}{20})$ \\
+6 & $(1,0,0)$ & $(\tfrac{34}{5},\tfrac{5\sqrt3-3}{8},\tfrac{13+3\sqrt3}{8})$
+  & $(0,\tfrac{13+3\sqrt3}{8},\tfrac{3-5\sqrt3}{8})$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At home, axes 4 and 6 lie on the same line and point in the same direction.
+Their chosen origins differ only along that line, so $\xi_4=\xi_6$.
+This equality describes the home configuration; the axes need not remain
+aligned when joint 5 moves.
+
+\textbf{3. Obtain the motion of one joint.}
+For a unit axis $\omega_i$, Rodrigues' formula gives the rotation $R_i(q_i)$.
+The corresponding rigid motion is the matrix exponential
+\begin{equation}
+ \begin{aligned}
+ R_i(q_i)&=I_3+\sin q_i[\omega_i]_\times
+                 +(1-\cos q_i)[\omega_i]_\times^2,\\
+ e^{\widehat\xi_i q_i}
+ &=\begin{pmatrix}
+ R_i(q_i)&(I_3-R_i(q_i))r_i\\0^T&1
+ \end{pmatrix}.
+ \end{aligned}
+ \label{eq:poe-exponential}
+\end{equation}
+The translation term follows by writing the rotated point as
+$r_i+R_i(q_i)(p-r_i)$. It keeps every point on the joint axis fixed.
+
+\textbf{4. Set the home pose and combine the joint motions.}
+At $q=0$, the endpoint has orientation $R_x(\gamma)$ and position $r_6$.
+Its home pose is therefore
+\begin{equation}
+ M={}^0T_E(0)=
+ \begin{pmatrix}
+ 1&0&0&\tfrac{34}{5}\\
+ 0&\tfrac{\sqrt3}{2}&-\tfrac12&\tfrac{5\sqrt3-3}{8}\\
+ 0&\tfrac12&\tfrac{\sqrt3}{2}&\tfrac{13+3\sqrt3}{8}\\
+ 0&0&0&1
+ \end{pmatrix}.
+ \label{eq:poe-home}
+\end{equation}
+The complete forward kinematics is
+\begin{equation}
+ \boxed{{}^0T_E(q)=e^{\widehat\xi_1q_1}e^{\widehat\xi_2q_2}
+ \cdots e^{\widehat\xi_6q_6}M.}
+ \label{eq:poe-fk}
+\end{equation}
+The factors are written in joint order, from 1 to 6. The screw axes are
+fixed at their home values; the product accounts for how earlier joints
+move the later axes. At $q=0$, all exponentials are identity matrices and
+the expression returns $M$.
+

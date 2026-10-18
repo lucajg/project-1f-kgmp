@@ -1,0 +1,10 @@
+\subsection{Verification}
+\label{sec:fk-verification}
+
+Using the data above, the PoE, DH and direct URDF models were compared at
+514 configurations: home, each joint alone at $\pm\pi/2$, one mixed pose,
+and 500 random configurations in $[-\pi,\pi]^6$.
+Across all model pairs, the largest position residual was
+$5.11\times10^{-11}$ m and the largest rotation-matrix Frobenius residual
+was $1.18\times10^{-11}$. The DH--PoE residuals were below $10^{-14}$;
+the URDF stores the fixed tilt as a decimal approximation of $\pi/6$.

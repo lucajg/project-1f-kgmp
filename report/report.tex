@@ -8,7 +8,7 @@
 \usetikzlibrary{arrows.meta,calc}
 \usepackage{caption,fancyhdr,microtype}
 \usepackage[colorlinks=true,linkcolor=black,urlcolor=blue!50!black]{hyperref}
-\hypersetup{pdftitle={CuRo6R -- Kinematic modelling},pdfsubject={Project 1F: DH description and analytical inverse kinematics}}
+\hypersetup{pdftitle={CuRo6R -- Kinematic modelling},pdfsubject={Project 1F: kinematic models, Jacobians and analytical inverse kinematics}}
 \definecolor{dhink}{HTML}{243747}
 \definecolor{dhblue}{HTML}{2164A1}
 \definecolor{dhred}{HTML}{B84338}
@@ -39,8 +39,16 @@
   \end{minipage}%
 }
 \begin{document}
+\section{Forward kinematics models}
+\label{sec:fk-models}
 \providecommand{\DHSectionFile}{sections/dh_parameters}
 \input{\DHSectionFile}
+\providecommand{\PoESectionFile}{sections/poe_model}
+\input{\PoESectionFile}
+\providecommand{\FKVerificationFile}{sections/fk_verification}
+\input{\FKVerificationFile}
+\providecommand{\JacobianSectionFile}{sections/jacobian}
+\input{\JacobianSectionFile}
 \providecommand{\AnalyticalIKSectionFile}{sections/analytical_ik}
 \input{\AnalyticalIKSectionFile}
 

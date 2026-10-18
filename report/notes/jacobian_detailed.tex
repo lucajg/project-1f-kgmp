@@ -1,0 +1,38 @@
+\input{sections/jacobian}
+
+\textbf{How the intermediate PoE transforms give the axes.}
+Write the product before joint $i$ as
+$F_{i-1}=e^{\widehat\xi_1q_1}\cdots e^{\widehat\xi_{i-1}q_{i-1}}
+=(R_{i-1},t_{i-1})$.
+Then $w_i=R_{i-1}\omega_i$ and $p_i=R_{i-1}r_i+t_{i-1}$.
+The current screw's linear component is $-w_i\times p_i$.
+Evaluating its velocity field at $p_k$ adds $w_i\times p_k$, giving
+the upper block of \eqref{eq:jacobian-column}.
+
+\textbf{Why the determinant separates.}
+The zero block in \eqref{eq:jacobian-wrist} gives
+$\det({}^3J_5)=\det A\det B$, with $\det B=-\sin q_5$.
+Expressing both velocity blocks in another rotated frame multiplies the
+Jacobian by $\operatorname{diag}(R^T,R^T)$, whose determinant is one.
+If $d=p_6-p_5$, changing the velocity reference gives
+\begin{equation}
+ {}^0J_6=\begin{pmatrix}I_3&-[d]_\times\\0&I_3\end{pmatrix}{}^0J_5.
+\end{equation}
+This matrix also has determinant one. The same factors therefore describe
+the full endpoint Jacobian.
+
+\textbf{Explicit arm factor.}
+Using the DH lengths and $\gamma=\pi/6$, define
+\begin{equation}
+ U=a_2+d_4c_3,\qquad X=Uc_2+d_3s_2,\qquad Z=-Us_2+d_3c_2.
+\end{equation}
+The symbolic result can then be written as
+\begin{equation}
+ D(q_2,q_3)=\frac{d_4}{2}
+ \left[a_1Zc_3-\sqrt3\,a_1Us_3
+       -\sqrt3\,X(a_2s_3-d_2c_3)\right].
+ \label{eq:jacobian-arm-factor}
+\end{equation}
+This expression contains neither $q_1$, $q_4$ nor $q_6$.
+Its zeros generally depend on the pair $(q_2,q_3)$, so the arm singularities
+are studied as curves in that plane.
