@@ -1,8 +1,9 @@
-\documentclass[a4paper,10pt]{article}
-\usepackage[margin=18mm,headheight=13pt,headsep=6mm,footskip=9mm]{geometry}
+\documentclass[a4paper,12pt]{article}
+\usepackage[margin=1in,headheight=15pt,headsep=6mm,footskip=9mm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{amsmath,amssymb,booktabs,array,tabularx}
+\usepackage{graphicx}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,calc}
 \usepackage{caption,fancyhdr,microtype}
@@ -26,11 +27,14 @@
 \captionsetup{font=small,labelfont=bf}
 \newcommand{\frameid}[1]{\{#1\}}
 \newcommand{\jointid}[1]{\mathrm{J}_{#1}}
+\newcommand{\DHDiagram}[1]{%
+  \resizebox{\linewidth}{!}{\input{figures/dh_step_#1.tex}}%
+}
 \newcommand{\DHPanel}[4]{%
   \begin{minipage}[t]{0.486\linewidth}
     {\small\sffamily\bfseries\color{dhink}#1}\par\vspace{1pt}
     {\small #2}\par\vspace{1pt}
-    \centering\input{figures/dh_step_#3.tex}\par
+    \centering\DHDiagram{#3}\par
     \raggedright\small #4
   \end{minipage}%
 }
@@ -38,9 +42,6 @@
 \providecommand{\DHSectionFile}{sections/dh_parameters}
 \input{\DHSectionFile}
 \providecommand{\AnalyticalIKSectionFile}{sections/analytical_ik}
-
-\newpage 
-
 \input{\AnalyticalIKSectionFile}
 
 \clearpage

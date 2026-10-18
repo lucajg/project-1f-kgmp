@@ -5,7 +5,8 @@ Figure~\ref{fig:dh-steps} collects all six frame-to-frame constructions at the
 home configuration ($q=0$), using one fixed viewing direction and length scale.
 Lengths are in metres; angles are shown in degrees for readability.
 
-\begin{figure}[!ht]
+\begingroup
+\captionsetup{hypcap=false}
 \centering
 \DHPanel{1\quad Base to shoulder: $\frameid{0}\to\frameid{1}$}
  {$d_1=1,\quad\theta_1=q_1,\quad\alpha_1=-60^\circ,\quad a_1=0.8$}{1}
@@ -29,6 +30,7 @@ Lengths are in metres; angles are shown in degrees for readability.
  The two physical offsets add: $d_4=1.5+1$.}
 
 \vspace{10pt}
+\begin{minipage}{\linewidth}
 \DHPanel{5\quad Coincident origins: $\frameid{4}\to\frameid{5}$}
  {$d_5=0,\quad\theta_5=q_5,\quad\alpha_5=90^\circ,\quad a_5=0$}{5}
  {The origins coincide, although the joint centres do not.
@@ -40,7 +42,7 @@ Lengths are in metres; angles are shown in degrees for readability.
  the fixed endpoint alignment changes orientation only.}
 
 \vspace{9pt}
-\caption{Standard DH frame assignment. Cylinders denote physical revolute joints
+\captionof{figure}{Standard DH frame assignment. Cylinders denote physical revolute joints
  $\jointid{i}$; dots mark DH origins $O_i$.
  \textcolor{dhred}{$x$}, \textcolor{dhgreen}{$y$} and \textcolor{dhblue}{$z$}
  axes retain their colours. Dashed lines extend joint axes;
@@ -50,4 +52,5 @@ gold dimensions locate the origins. Boxed angle sketches show the rotation $x_2\
  point). Cylinder orientation, size and viewing direction are reused between panels;
  drawings are schematic.}
 \label{fig:dh-steps}
-\end{figure}
+\end{minipage}
+\par\endgroup

@@ -159,3 +159,99 @@ and set $A=a_2+d_4c_3$. Then compute
 Check each triple against the target wrist position using forward kinematics,
 represent angles in $[-\pi,\pi]$ and remove duplicates modulo $2\pi$.
 Pass the valid arm configurations to the wrist-orientation problem.
+
+\subsection{Endpoint orientation}
+\label{sec:ik-orientation}
+
+For each arm configuration $(q_1,q_2,q_3)$ found in the positioning step,
+we now determine the wrist angles $(q_4,q_5,q_6)$ that give the desired
+orientation $R_d$. Different arm configurations generally require different
+wrist angles, so this calculation is repeated for each arm solution.
+
+\subsubsection*{Derivation}
+
+\textbf{1. Express the desired orientation relative to the arm.}
+Using the same URDF link frames as in the positioning derivation, the
+orientation of \texttt{link\_3\_d3} relative to \texttt{base\_link} is
+\begin{equation}
+ R_{\text{arm}}=R_z(q_1)R_x(\gamma)R_y(q_2)R_z(q_3),
+ \qquad \gamma=\pi/6.
+ \label{eq:ik-arm-orientation}
+\end{equation}
+The wrist joints rotate about their local $x$, $z$ and $x$ axes, respectively.
+There are no fixed rotations between these URDF link frames. Thus
+\begin{equation}
+ R_d=R_{\text{arm}}R_{\text{wrist}},
+ \qquad
+ R_{\text{wrist}}:=R_{\text{arm}}^TR_d
+                 =R_x(q_4)R_z(q_5)R_x(q_6).
+ \label{eq:ik-wrist-orientation}
+\end{equation}
+Here the transpose undoes the known arm rotation. Let $r_{ij}$ denote the
+entry in row $i$ and column $j$ of $R_{\text{wrist}}$.
+
+\textbf{2. Use the first column to recover $q_5$ and $q_4$.}
+Since $R_x(q_6)e_x=e_x$, the first column is
+\begin{equation}
+ R_{\text{wrist}}e_x
+ =R_x(q_4)R_z(q_5)e_x
+ =\begin{pmatrix}c_5&c_4s_5&s_4s_5\end{pmatrix}^T
+ =\begin{pmatrix}r_{11}&r_{21}&r_{31}\end{pmatrix}^T.
+ \label{eq:ik-wrist-first-column}
+\end{equation}
+Thus $c_5=r_{11}$. Using $c_4^2+s_4^2=1$ also gives
+$\rho:=\sqrt{r_{21}^2+r_{31}^2}=|s_5|$.
+For $\rho>0$, take each sign $s_5=\pm\rho$. Dividing the last two entries
+by $s_5$ gives $c_4$ and $s_4$, so the two angle pairs are
+\begin{equation}
+ q_5=\operatorname{atan2}(s_5,r_{11}),\qquad
+ q_4=\operatorname{atan2}\!\left(\frac{r_{31}}{s_5},
+                               \frac{r_{21}}{s_5}\right).
+ \label{eq:ik-wrist-q45}
+\end{equation}
+Keep the chosen sign of $s_5$ in both fractions.
+The case $\rho=0$ is treated in step 4.
+
+\textbf{3. Undo $q_4$ to recover $q_6$.}
+Once $q_4$ is known, multiply on the left by $R_x(-q_4)$ to undo its rotation:
+\begin{equation}
+ B:=R_x(-q_4)R_{\text{wrist}}=R_z(q_5)R_x(q_6).
+ \label{eq:ik-wrist-remainder}
+\end{equation}
+The third row of $R_z(q_5)$ is $(0,0,1)$, so the third row of $B$ is
+$(0,s_6,c_6)$. We can therefore recover $q_6$ without dividing by $s_5$:
+\begin{equation}
+ q_6=\operatorname{atan2}(B_{32},B_{33}).
+ \label{eq:ik-wrist-q6}
+\end{equation}
+When $\rho>0$, the two wrist solutions are related by
+$(q_4,q_5,q_6)\mapsto(q_4+\pi,-q_5,q_6+\pi)$, with all angles taken modulo $2\pi$.
+
+\textbf{4. Handle the cases where $s_5=0$.}
+When $\rho=0$, we have $q_5=0$ or $q_5=\pi$ modulo $2\pi$.
+The formula for $q_4$ divides by $s_5$ and no longer applies. The axes of
+joints 4 and 6 lie on the same line, so their angles cannot be determined
+separately. The wrist rotation reduces to $R_x(q_4+q_6)$ for $q_5=0$ and
+$R_x(q_4-q_6)R_z(\pi)$ for $q_5=\pi$. Thus only a sum or a difference is fixed:
+\begin{equation}
+ \begin{aligned}
+ q_5=0\ (r_{11}=1):\quad
+ &q_4+q_6=\sigma:=\operatorname{atan2}(r_{32},r_{22}),\\
+ q_5=\pi\ (r_{11}=-1):\quad
+ &q_4-q_6=\delta:=\operatorname{atan2}(-r_{32},-r_{22}).
+ \end{aligned}
+ \label{eq:ik-wrist-singular}
+\end{equation}
+These relations hold modulo $2\pi$. We may choose any $q_4$ and set
+$q_6=\sigma-q_4$ in the first case or $q_6=q_4-\delta$ in the second.
+Choosing $q_4=0$ gives the representatives $(0,0,\sigma)$ and $(0,\pi,-\delta)$
+for $(q_4,q_5,q_6)$.
+
+\subsubsection*{Practical evaluation}
+
+For each arm solution, use both wrist branches from steps 2--3 when $\rho$
+exceeds a small numerical tolerance. Otherwise, take $q_4=0$ and use the sign
+of $r_{11}$ to select the case in \eqref{eq:ik-wrist-singular}.
+Combine each wrist solution with its arm solution, represent all angles in
+$[-\pi,\pi]$, and remove duplicates modulo $2\pi$. Verify the position and
+orientation against $(p_d,R_d)$ by forward kinematics, using separate tolerances.

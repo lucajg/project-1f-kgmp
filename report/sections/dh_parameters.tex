@@ -32,41 +32,20 @@ $i$ & $d_i$ & $\theta_i$ & $\alpha_i$ & $a_i$ & Geometric origin of the paramete
     At home $x_2=x_1$, and the orthogonal joint axes give $\alpha_2=+90^\circ$. \\
 3 & $0.75$ & $q_3+\pi/2$ & $+\pi/2$ & $0$
   & Moving $0.75$ along $z_2$ reaches the intersection with joint 4's axis:
-    $O_3$ in Fig.~\ref{fig:dh-choices}(a), hence $a_3=0$.
+    $O_3$ in step 3 of Appendix~\ref{app:dh-constructions}, hence $a_3=0$.
     Choosing $x_3=y_2$ gives the $+90^\circ$ angle offset and $\alpha_3=+90^\circ$. \\
 4 & $2.5$ & $q_4$ & $-\pi/2$ & $0$
   & The wrist centre lies $1.5+1=2.5$ along $z_3$ from $O_3$.
     Axes 4 and 5 intersect there; with $x_4=x_3$ at home, $\alpha_4=-90^\circ$. \\
 5 & $0$ & $q_5$ & $+\pi/2$ & $0$
   & Axes 5 and 6 meet at the wrist centre, so $O_5=O_4$ and $d_5=a_5=0$
-    [Fig.~\ref{fig:dh-choices}(b)]. Keeping $x_5=x_4$ gives $\alpha_5=+90^\circ$. \\
+    [Appendix~\ref{app:dh-constructions}, step 5]. Keeping $x_5=x_4$ gives $\alpha_5=+90^\circ$. \\
 6 & $1.5$ & $q_6$ & $0$ & $0$
   & The endpoint is $1.5$ along $z_5$ from the wrist centre.
     Choosing $z_6=z_5$ and $x_6=x_5$ at home gives $a_6=\alpha_6=0$. \\
 \bottomrule
 \end{tabularx}
 \end{table}
-
-\begin{figure}[!ht]
-\centering
-\begin{minipage}[t]{0.486\linewidth}
-\centering
-{\small\sffamily\bfseries\color{dhink}(a) Axis intersection: $\frameid{2}\to\frameid{3}$}\par
-\input{figures/dh_step_3.tex}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.486\linewidth}
-\centering
-{\small\sffamily\bfseries\color{dhink}(b) Wrist centre: $\frameid{4}\to\frameid{5}$}\par
-\input{figures/dh_step_5.tex}
-\end{minipage}
-\caption{Frame placement at $q=0$. (a) $O_3$ lies $1.5$ m before the physical
-origin of joint 4 along its axis; this distance contributes to $d_4$.
-(b) $O_4=O_5$ at the wrist centre; the $1.5$ m between joints 5 and 6 contributes
-to $d_6$, while $d_5=0$. Cylinders mark physical joint origins and black dots
-mark DH origins; \textcolor{dhred}{$x$}, \textcolor{dhgreen}{$y$}, and
-\textcolor{dhblue}{$z$} identify the frame axes.}
-\label{fig:dh-choices}
-\end{figure}
 
 \textbf{Endpoint alignment.}
 The endpoint $E$ is \texttt{link\_6}. Its origin coincides with $O_6$, while
@@ -75,8 +54,8 @@ to the DH chain to recover the URDF endpoint pose:
 \begin{equation}
  {}^0T_E=\left(\prod_{i=1}^{6}{}^{i-1}\!T_i\right){}^6T_E,
  \qquad
- {}^6T_E=\begin{bmatrix}
+ {}^6T_E=\begin{pmatrix}
  0&1&0&0\\0&0&1&0\\1&0&0&0\\0&0&0&1
- \end{bmatrix}.
+ \end{pmatrix}.
  \label{eq:dh-tool}
 \end{equation}
