@@ -21,7 +21,7 @@ the determinant argument, and the explicit arm factor.
 To compile the detailed version separately from this directory,
 use `latexmk -pdf working_notes.tex` (or `tectonic working_notes.tex`). It shares the
 main preamble, diagram sources and appendix; its extended DH and PoE explanations
-are not included in the main report.
+and Jacobian derivations are not included in the main report.
 
 Compile from this directory:
 
@@ -38,6 +38,15 @@ ordinary editable TikZ sources, requiring no external images or shell escape.
 `figures/generate_dh_diagrams.py` regenerates them from shared home-frame
 geometry and a fixed projection (Python 3 with NumPy). Manual changes to the
 generated TikZ files are overwritten if that script is rerun.
+
+`figures/singularity_map.pdf` is the vector plot used in the Jacobian section;
+`figures/singularity_map.png` is its preview. Regenerate both with
+`python3 figures/generate_singularity_map.py` (NumPy and Matplotlib).
+The plot evaluates the verified symbolic arm factor on a 1201-by-1201 grid.
+Black curves mark its zero contour; blue and pink show negative and positive
+values, matching the MATLAB explorer. At `q5 = pi/2`, the arm factor equals the
+full Jacobian determinant. The generator checks the periodic boundaries and
+the residual along the interpolated contour.
 
 To integrate into a larger report, copy the packages, colour definitions and
 frame/joint notation macros from the preamble, then input
@@ -114,3 +123,11 @@ The PoE screw data were checked symbolically, then the PoE, DH and direct URDF
 forward models were compared at 514 configurations. The detailed verification subsection
 records the configuration set and residuals. The successive-origin formulas in
 the compact section were also checked to reproduce all six table entries exactly.
+
+The Jacobian section was checked with `check_jacobians(false)`: 114 configurations,
+two geometries, points 5/6, and expression frames 0:6. The maximum DH--PoE
+Frobenius residual was 1.11e-14; the finite-difference residual was 1.45e-9.
+A separate symbolic calculation from the PoE model verified the zero wrist
+linear block, the displayed wrist matrix, and both determinant factors.
+The explicit determinant agreed with numerical evaluations at 113 configurations,
+for points 5/6 and frames 0/3, with a maximum absolute residual of 2.31e-14.

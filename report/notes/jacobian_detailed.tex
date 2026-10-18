@@ -14,12 +14,17 @@ The zero block in \eqref{eq:jacobian-wrist} gives
 $\det({}^3J_5)=\det A\det B$, with $\det B=-\sin q_5$.
 Expressing both velocity blocks in another rotated frame multiplies the
 Jacobian by $\operatorname{diag}(R^T,R^T)$, whose determinant is one.
-If $d=p_6-p_5$, changing the velocity reference gives
+If $d=p_\ell-p_j$, changing the velocity reference gives
 \begin{equation}
- {}^0J_6=\begin{pmatrix}I_3&-[d]_\times\\0&I_3\end{pmatrix}{}^0J_5.
+ {}^0J_\ell=\begin{pmatrix}I_3&-[d]_\times\\0&I_3\end{pmatrix}{}^0J_j.
 \end{equation}
-This matrix also has determinant one. The same factors therefore describe
-the full endpoint Jacobian.
+This matrix also has determinant one. Thus
+$\det({}^iJ_j)=\det({}^3J_5)$ for every expression frame $i$ and velocity
+reference point $p_j$, when all six columns describe the same full tool motion.
+This is why ${}^3J_5$ suffices to study the full robot's singularities.
+Changing the reference point preserves rank, but can change the singular
+values. Numerical singular-value margins should therefore use a fixed
+reference point.
 
 \textbf{Explicit arm factor.}
 Using the DH lengths and $\gamma=\pi/6$, define

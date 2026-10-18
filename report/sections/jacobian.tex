@@ -30,26 +30,42 @@ With $c_i=\cos q_i$ and $s_i=\sin q_i$, the result has the form
  \end{pmatrix}.
  \label{eq:jacobian-wrist}
 \end{equation}
-The wrist subchain consists of the last three columns. Here $A$ maps the
-first three joint rates to wrist-centre velocity, and $B$ maps the wrist
-rates to angular velocity.
+The last three columns describe the wrist subchain. The blocks $A$ and
+$C$ give the linear and angular contributions of joints 1--3; $B$ gives
+the wrist's angular contribution.
 
 \textbf{Symbolic and numerical routes.}
 The same MATLAB function accepts numerical or symbolic inputs. Numerical
 inputs evaluate the Jacobian at a chosen configuration. Symbolic inputs
 give an exact expression, from which the determinant is obtained.
-For the full endpoint Jacobian $J={}^0J_6$, it factors as
+We use $J={}^3J_5$, whose zero block makes the determinant easy to evaluate:
 \begin{equation}
  \det J(q)=\sin q_5\,D(q_2,q_3),\qquad D(q_2,q_3)=-\det A.
  \label{eq:jacobian-determinant}
 \end{equation}
-Moving the velocity reference from the wrist centre to the endpoint does
-not change this determinant. The wrist factor vanishes at $q_5=0$ or
+Changing the expression frame or velocity reference point preserves this
+determinant, provided all six columns describe the same full tool motion.
+The wrist factor vanishes at $q_5=0$ or
 $\pi$ modulo $2\pi$. Axes 4 and 6 then lie on the same line, so one
 independent rotation is lost. The arm factor depends jointly on $q_2$ and
 $q_3$. Thus the wrist and arm conditions separate, while the arm condition
-must be studied in the $(q_2,q_3)$ plane.
+must be studied in the $(q_2,q_3)$ plane, as shown in
+Figure~\ref{fig:arm-singularity-map}.
 
-A full configuration is regular only when both factors are nonzero.
-For numerical checks, the smallest singular value of the full $J$ gives
-a measure of proximity to a singularity.
+A full configuration is regular exactly when both factors are nonzero.
+Numerically, we monitor the smallest singular value of \(J\). It becomes 
+zero at a singularity, and small values indicate that the Jacobian is 
+close to losing rank.
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\centering
+\includegraphics[width=0.66\linewidth]{figures/singularity_map.pdf}
+\captionsetup{hypcap=false}
+\captionof{figure}{Arm singularity map over $(q_2,q_3)\in[-\pi,\pi]^2$.
+Black curves mark $D=0$; the colours show its sign. Setting $q_5=\pi/2$
+gives $\det J=D$. Wrist singularities $\sin q_5=0$ are a separate condition.
+Opposite edges match modulo $2\pi$.}
+\label{fig:arm-singularity-map}
+\end{minipage}
+\end{center}
