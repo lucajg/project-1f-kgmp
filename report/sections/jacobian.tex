@@ -60,12 +60,17 @@ close to losing rank.
 \begin{center}
 \begin{minipage}{\linewidth}
 \centering
-\includegraphics[width=0.66\linewidth]{figures/singularity_map.pdf}
+\includegraphics[width=\linewidth]{figures/singularity_map.pdf}
 \captionsetup{hypcap=false}
-\captionof{figure}{Arm singularity map over $(q_2,q_3)\in[-\pi,\pi]^2$.
-Black curves mark $D=0$; the colours show its sign. Setting $q_5=\pi/2$
-gives $\det J=D$. Wrist singularities $\sin q_5=0$ are a separate condition.
-Opposite edges match modulo $2\pi$.}
+\captionof{figure}{Arm singularities in joint space (left) and the
+wrist-centre workspace (right), with $\rho_w=\sqrt{x_w^2+y_w^2}$.
+Black curves show $D=0$ and its image under forward kinematics;
+the colours on the left give the sign of $D$.
+Matching labels mark four cusps, where three arm IK solutions coincide.
+They show that the robot's positioning chain is cuspidal: it can change
+between IK solutions without crossing an arm singularity.
+Opposite joint-space edges match modulo $2\pi$; wrist singularities remain
+a separate condition.}
 \label{fig:arm-singularity-map}
 \end{minipage}
 \end{center}

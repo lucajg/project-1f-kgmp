@@ -17,7 +17,8 @@ Rodrigues' formula and the expanded home pose. Shared verification is in
 `notes/fk_verification_detailed.tex`.
 The compact Jacobian section is in `sections/jacobian.tex`.
 `notes/jacobian_detailed.tex` adds the intermediate-axis construction,
-the determinant argument, and the explicit arm factor.
+the determinant argument, the explicit arm factor, and the workspace mapping
+and cusp verification.
 To compile the detailed version separately from this directory,
 use `latexmk -pdf working_notes.tex` (or `tectonic working_notes.tex`). It shares the
 main preamble, diagram sources and appendix; its extended DH and PoE explanations
@@ -44,9 +45,20 @@ generated TikZ files are overwritten if that script is rerun.
 `python3 figures/generate_singularity_map.py` (NumPy and Matplotlib).
 The plot evaluates the verified symbolic arm factor on a 1201-by-1201 grid.
 Black curves mark its zero contour; blue and pink show negative and positive
-values, matching the MATLAB explorer. At `q5 = pi/2`, the arm factor equals the
-full Jacobian determinant. The generator checks the periodic boundaries and
-the residual along the interpolated contour.
+values, matching the MATLAB explorer. The second panel maps the same curves
+to `(rho_w,z_w)`, with `rho_w = sqrt(x_w^2+y_w^2)`. This is the wrist centre,
+not the orientation-dependent tool endpoint. Corresponding labels mark four
+cusps in both panels. At `q5 = pi/2`, the arm factor equals the full Jacobian
+determinant. The generator checks the periodic boundaries, the residual along
+the interpolated contour, and the triple-root conditions of the IK quartic at
+the stored cusp configurations. The largest normalised triple-root residual
+is 4.82e-14; the third derivative is nonzero at all four points. Cusp locations
+were obtained numerically from `D=0` and
+`grad(D) dot (dz_w/dq3, -dz_w/dq2) = 0`; the polynomial check rejects stationary
+height points that also satisfy these equations but are not cusps.
+The wrist-position formula was also checked against direct PoE evaluation at
+100 reproducible random configurations and the four cusp configurations;
+the maximum position residual was 2.09e-15 m.
 
 To integrate into a larger report, copy the packages, colour definitions and
 frame/joint notation macros from the preamble, then input

@@ -41,3 +41,37 @@ The symbolic result can then be written as
 This expression contains neither $q_1$, $q_4$ nor $q_6$.
 Its zeros generally depend on the pair $(q_2,q_3)$, so the arm singularities
 are studied as curves in that plane.
+
+\textbf{From joint space to the wrist-centre workspace.}
+Set $V=d_2+d_4s_3$, $c_\gamma=\cos\gamma$ and $s_\gamma=\sin\gamma$.
+At $q_1=0$, the wrist centre is
+\begin{equation}
+ p_w=\begin{pmatrix}
+ a_1+X\\c_\gamma V-s_\gamma Z\\d_1+s_\gamma V+c_\gamma Z
+ \end{pmatrix},\qquad
+ \rho_w=\sqrt{(a_1+X)^2+(c_\gamma V-s_\gamma Z)^2}.
+\end{equation}
+Changing $q_1$ rotates this point about the base $z$-axis, leaving
+$(\rho_w,z_w)$ unchanged. The right panel of
+Figure~\ref{fig:arm-singularity-map} maps each point of $D=0$ through
+these equations. It shows the wrist centre, whose position depends on
+joints 1--3. The tool endpoint also depends on the wrist orientation
+through $p_E=p_w+d_6R_Ee_x$.
+
+\textbf{Checking the cusps.}
+The four marked points were checked using the arm IK polynomial
+$P(t)$ in \eqref{eq:ik-quartic}. Rotate each wrist point onto $y_w=0$;
+the corresponding base angle is $q_1=-\operatorname{atan2}(y_w,x_w)$,
+where $(x_w,y_w)$ are its coordinates before this rotation.
+At $t=\tan(q_1/2)$, each marked point satisfies
+\begin{equation}
+ P(t)=P'(t)=P''(t)=0,\qquad P'''(t)\ne0.
+\end{equation}
+Thus three arm IK solutions coincide at each cusp.
+After normalising the polynomial coefficients, the largest residual
+in the three zero conditions was $4.9\times10^{-14}$.
+The cusp criterion establishes that the positioning chain is cuspidal
+(see \href{https://doi.org/10.1016/j.mechmachtheory.2022.104729}
+{Salunkhe et al., 2022}). This means that some arm IK solutions can be
+connected without crossing an arm singularity. A motion of the full
+robot must also keep $\sin q_5\ne0$ and respect the joint limits.
