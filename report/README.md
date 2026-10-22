@@ -95,10 +95,10 @@ shell escape.
 ## Source interpretation
 
 The handwritten `DH Parameters Project.pdf`, the project brief, and the existing
-`Matlab/dh_data.m`, `Matlab/robot_dimensions.m` and `CuRo6R/CuRo6R.urdf` were used.
+`Matlab/models/dh_data.m`, `Matlab/models/robot_dimensions.m` and `CuRo6R/CuRo6R.urdf` were used.
 The brief supplies context for the DH description. The PoE section also uses the
 handwritten `Product Of Exponentials.pdf`, the construction method described by
-the author, and `Matlab/poe_data.m`.
+the author, and `Matlab/models/poe_data.m`.
 
 - Standard DH row i maps frame i-1 to frame i; joint i rotates about z_(i-1).
 - With frame 0 at `base_link`, d1 is 1 m, combining the two 0.5 m heights.

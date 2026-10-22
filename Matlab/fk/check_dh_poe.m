@@ -1,6 +1,6 @@
 function check_dh_poe
 %CHECK_DH_POE Compare DH, PoE and URDF joint axes and the link_6 pose.
-% Run check_dh_poe from the Matlab folder. No Robotics Toolbox is needed.
+% Run curo6r_setup first, then check_dh_poe. No Robotics Toolbox is needed.
 
 poe_model = poe_data();
 dh_model = dh_data();
