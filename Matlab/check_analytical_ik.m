@@ -1,5 +1,5 @@
 function check_analytical_ik
-% Round-trip both IK solvers against DH and URDF forward kinematics.
+% Round-trip arm, full-pose and standalone wrist IK against DH and URDF FK.
 stream = RandStream('mt19937ar','Seed',17);
 g = robot_dimensions();
 g_other = g;
@@ -60,6 +60,14 @@ for k = 1:30
     count = count+1;
 end
 
+% The standalone wrist solver exposes its singularity threshold.
+source = [0.4; -0.4; 0.8; 0.7; 1e-6; -1.1];
+target = dh_fk(source,dm);
+[wrist, is_singular] = analytical_ik_wrist(source(1:3),target(1:3,1:3),pm,1e-5);
+assert(is_singular && isequal(size(wrist),[3,1]));
+[wrist, is_singular] = analytical_ik_wrist(source(1:3),target(1:3,1:3),pm,1e-7);
+assert(~is_singular && isequal(size(wrist),[3,2]));
+
 bad = eye(4); bad(1,1) = 2;
 for solver = {@analytical_ik_3r, @analytical_ik_6r}
     try
@@ -95,6 +103,24 @@ end
 assert(all(errors<1e-7),'An IK candidate failed independent forward kinematics.');
 
 if isempty(source), return; end
+% Test the public wrist solver with a prescribed arm, independently of arm IK.
+[wrist, is_singular] = analytical_ik_wrist(source(1:3),target(1:3,1:3),pm);
+expected_singular = abs(sin(source(5))) <= 1e-10;
+assert(is_singular == expected_singular,'Wrong wrist singularity flag.');
+assert(isequal(size(wrist),[3,2-double(expected_singular)]));
+assert(isreal(wrist) && all(isfinite(wrist(:))) && all(abs(wrist(:))<=pi+1e-12));
+if is_singular
+    assert(wrist(1)==0,'A singular wrist should use q4 = 0.');
+else
+    assert(sin(wrist(2,1))>0 && sin(wrist(2,2))<0,'Wrong wrist branch order.');
+end
+for j = 1:size(wrist,2)
+    T = dh_fk([source(1:3);wrist(:,j)],dm);
+    assert(norm(T-target,'fro')<1e-7,'Standalone wrist IK failed independent DH FK.');
+end
+[wrist_row, singular_row] = analytical_ik_wrist(source(1:3).',target(1:3,1:3),pm);
+assert(isequal(wrist_row,wrist) && singular_row==is_singular,'Row arm input changed wrist IK.');
+
 % Pose agreement alone does not detect a missing original arm or wrist branch.
 difference = atan2(sin(Q(1:3,:)-source(1:3)),cos(Q(1:3,:)-source(1:3)));
 same_arm = vecnorm(difference,2,1)<1e-5;
