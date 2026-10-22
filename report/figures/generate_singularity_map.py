@@ -2,7 +2,7 @@
 
 Run from any directory. Requires NumPy and Matplotlib. The PDF is the vector
 asset included by the report; the PNG is a preview. The formula and dimensions
-match notes/jacobian_detailed.tex and Matlab/robot_dimensions.m.
+match notes/jacobian_detailed.tex and Matlab/models/robot_dimensions.m.
 """
 
 from pathlib import Path

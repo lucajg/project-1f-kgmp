@@ -1,6 +1,6 @@
 function check_dh_poe
 %CHECK_DH_POE Compare DH, PoE and URDF joint axes and the link_6 pose.
-% Run check_dh_poe from the Matlab folder. No Robotics Toolbox is needed.
+% Run curo6r_setup first, then check_dh_poe. No Robotics Toolbox is needed.
 
 poe_model = poe_data();
 dh_model = dh_data();
@@ -72,6 +72,7 @@ for m = 1:3
         '%s row and column joint vectors should give the same result.', names{m});
 end
 
+check_poe_prefixes(poe_model,dh_model,urdf_model,Q(:,[1,14,15]));
 fprintf('DH, PoE and URDF agree for %d configurations.\n', size(Q,2));
 % Pose error mixes rotation and position; axis-line error is in metres.
 fprintf('%-12s %12s %16s %14s\n', 'Pair', 'Max pose', 'Max direction', 'Max axis line');
@@ -80,4 +81,36 @@ for j = 1:size(pairs,1)
     fprintf('%-12s %12.3e %16.3e %14.3e\n', pair_name, max_error(j,:));
 end
 fprintf('Maximum PoE-URDF joint-origin error: %.3e m\n', max_origin_error);
+end
+
+function check_poe_prefixes(poe,dh,urdf,Q)
+% Active joint count must not choose or replace the endpoint home pose.
+tool_offset = [0,-1,0,.2; 1,0,0,-.1; 0,0,1,.3; 0,0,0,1];
+tool = poe;
+tool.M = poe.M * tool_offset;
+for sample = 1:size(Q,2)
+    for n_active = 1:dh.n
+        q = Q(1:n_active,sample);
+        q_full = [q; zeros(dh.n-n_active,1)];
+        [T,p,w,F0] = poe_fk(q,poe,n_active);
+        [T_dh,~,~,T0] = dh_fk(q_full,dh);
+        [~,p_urdf,w_urdf] = urdf_fk(q_full,urdf);
+        assert(norm(T-T_dh,'fro') < 1e-10,'PoE prefix changed the endpoint.');
+        assert(norm(p-p_urdf(:,1:n_active),'fro') < 1e-10);
+        assert(norm(w-w_urdf(:,1:n_active),'fro') < 1e-10);
+        assert(isequal(size(F0),[4,4,n_active+1]));
+        assert(isequal(F0(:,:,1),eye(4)));
+        assert(norm(poe_fk(q.',poe,n_active)-T,'fro') < 1e-10);
+        T_tool = poe_fk(q,tool,n_active);
+        assert(norm(T_tool-T_dh*tool_offset,'fro') < 1e-10, ...
+            'PoE prefix replaced the custom endpoint home pose.');
+        if n_active == 3
+            F = F0(:,:,end);
+            wrist = F(1:3,1:3)*poe.r(:,5) + F(1:3,4);
+            assert(norm(wrist-T0(1:3,4,6)) < 1e-10, ...
+                'PoE arm prefix disagrees with the DH wrist center.');
+        end
+    end
+end
+fprintf('PoE prefixes passed: tool poses, joint axes, row inputs, and wrist center.\n');
 end
