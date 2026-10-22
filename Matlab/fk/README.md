@@ -9,7 +9,7 @@ Evaluate CuRo6R poses and joint axes using DH, PoE, or direct URDF transforms. K
 | File | Purpose |
 | --- | --- |
 | [dh_fk.m](dh_fk.m) | Standard DH forward kinematics and cumulative DH frames. |
-| [poe_fk.m](poe_fk.m) | Space-frame Product of Exponentials and partial products. |
+| [poe_fk.m](poe_fk.m) | Product of Exponentials using home screw axes expressed in `base_link`, with optional cumulative products through each joint. |
 | [urdf_fk.m](urdf_fk.m) | Direct composition of fixed URDF placements and local joint rotations. |
 | [check_dh_poe.m](check_dh_poe.m) | Repeatable comparison of poses, joint axes, and physical origins. |
 | [private/validate_joint_vector.m](private/validate_joint_vector.m) | Validate the joint-vector size and numerical values. |
@@ -43,7 +43,18 @@ All three FK functions accept a six-element row or column vector `q`. They retur
 
 **[poe_fk.m](poe_fk.m)** computes the product `T = expm(xi_hat(:,:,1)*q(1)) * ... * expm(xi_hat(:,:,6)*q(6)) * M`. For the robot's unit revolute axes, each exponential is evaluated directly with `R = I + sin(q)*W + (1-cos(q))*W^2` and translation `(I-R)*r`. This closed form supports both numbers and exact symbols. The optional fourth output `F0(:,:,i+1)` contains the product through joint `i`, with identity in the first slice. Symbolic cumulative transforms are simplified at each step.
 
-The optional third input, `poe_fk(q,poe_model,joint)`, limits the product to the first `joint` factors and requires that many joint angles. Omitting it uses all model joints. The endpoint home pose `M` is still appended: shortening the product holds later joints at zero, while retaining their geometry. To track the wrist center with three active joints, copy the model and set `M(1:3,4) = r(:,5)` in that copy.
+The optional third input, `poe_fk(q,poe_model,n_active)`, selects the first `n_active` joint motions and requires that many joint angles. Omitting it uses all model joints. `T` always describes the endpoint defined by the model's home pose `M`; later joints are held at zero. The outputs `p` and `w` contain the first `n_active` joint axes, and `F0` contains identity followed by the cumulative products through those joints.
+
+The number of active joints and the point being tracked are independent. For example, the wrist center is home origin `r(:,5)`, carried by the first three joint motions. Use the corresponding partial product to move that point directly:
+
+```matlab
+q_arm = [20; -35; 50]*pi/180;
+[~,~,~,F0] = poe_fk(q_arm, poe_model, 3);
+F = F0(:,:,end);
+p_wrist = F(1:3,1:3)*poe_model.r(:,5) + F(1:3,4);
+```
+
+This is also the wrist-center check used by the arm IK solver. The model's `M` remains the home pose of `link_6`; a separately defined tool endpoint can keep its own home pose without being replaced by a joint origin.
 
 Before adding joint `i`'s motion, `F` contains only joints `1,...,i-1`. Its rotation and translation carry joint `i`'s home origin and axis into their current positions: `p(:,i) = R*r(:,i) + t` and `w(:,i) = R*omega(:,i)`. Thus `p` tracks the physical joint origins specified in `poe_data`.
 
@@ -56,5 +67,7 @@ Before adding joint `i`'s motion, `F` contains only joints `1,...,i-1`. Its rota
 For each configuration and model pair, it measures three errors. Taking DH-PoE as an example: `norm(T_dh-T_poe,'fro')` compares the complete endpoint poses, `norm(w_dh-w_poe,'fro')` compares joint-axis directions, and `norm(cross(p_dh-p_poe,w_poe,1),'fro')` compares axis locations. The Frobenius norm is the square root of the sum of squared matrix entries. The cross product is taken separately for each column: a displacement parallel to an axis has zero cross product with that axis. Since `w_poe` is a unit vector, each cross-product magnitude is the perpendicular distance to the PoE axis line. Together with equal directions, zero distance means the two representations describe the same axis, even when their chosen origins differ. A separate check compares PoE and URDF joint origins directly, since these physical origins should coincide.
 
 Each row of `max_error` retains the largest pose, direction, and axis-line errors for one pair across all configurations. All comparisons, including the physical-origin check, must be below `1e-10`; using exact `pi/6` consistently leaves only floating-point roundoff. The function also repeats each model's final evaluation with a row vector and checks that all outputs match the column-vector result. On success it prints the sample count and a table of maximum errors; a failed comparison names the pair and measure. The pose norm combines rotation entries and position entries, so it is a numerical consistency check rather than a physical distance. These sampled checks support agreement between the implementations; they are not a proof for every configuration or an independent validation of the physical robot geometry.
+
+The check also compares shortened PoE products with independent DH FK when later angles are zero, verifies a custom tool home pose, and checks the wrist center obtained from the first three factors against DH frame 5.
 
 See the report's [FK verification](../../report/sections/fk_verification.tex).

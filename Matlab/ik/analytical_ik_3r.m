@@ -55,9 +55,6 @@ else
     q1_candidates = [2*atan(real(t)); pi];
 end
 
-% Move the wrist-center home point, rather than the original tool endpoint.
-arm_model = poe_model;
-arm_model.M(1:3,4) = poe_model.r(:,5);
 Q = zeros(3,0);
 for q1 = q1_candidates.'
     % Undo joint 1, translate to the shoulder, then undo the fixed 30-degree tilt.
@@ -75,8 +72,11 @@ for q1 = q1_candidates.'
     q2 = atan2(d3*X-A*Z, A*X+d3*Z);
     q = [q1; q2; q3];
 
-    T_w = poe_fk(q,arm_model,3);
-    if norm(T_w(1:3,4)-p_w) > position_tol
+    % The first three joints carry the wrist center at home origin 5.
+    [~,~,~,F0] = poe_fk(q,poe_model,3);
+    F = F0(:,:,end);
+    p_check = F(1:3,1:3)*poe_model.r(:,5) + F(1:3,4);
+    if norm(p_check-p_w) > position_tol
         continue
     end
     % Compare angles modulo 2*pi to merge repeated roots and the +/-pi boundary.
