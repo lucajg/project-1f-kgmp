@@ -20,10 +20,6 @@ addpath('Matlab');
 curo6r_setup;
 ```
 
-From elsewhere, first add this `Matlab` folder using its absolute path, then call `curo6r_setup`. Setup resolves every topic folder relative to its own file, so it works independently of the current folder and can be called repeatedly. It does not change the current folder or save the path permanently. Rerun it in each new MATLAB session.
-
-Existing function names and inputs are unchanged. Replace older instructions that only call `addpath('Matlab')` with the two lines above. Do not add `private/` folders directly or recursively add the whole repository. The explicit setup excludes report files and keeps MATLAB's private-helper visibility intact.
-
 ## Run checks
 
 After adding `Matlab` to the path, the runner performs setup automatically:

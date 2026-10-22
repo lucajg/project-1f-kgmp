@@ -1,7 +1,6 @@
 function curo6r_setup
 %CURO6R_SETUP Add the CuRo6R MATLAB folders for the current session.
 % Add the Matlab folder to the path first, then call curo6r_setup once.
-% Paths are resolved from this file; the current folder is not changed.
 matlab_root = fileparts(mfilename('fullpath'));
 addpath(matlab_root, ...
     fullfile(matlab_root,'models'), ...
