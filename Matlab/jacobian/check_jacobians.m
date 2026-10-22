@@ -33,8 +33,8 @@ for geometry = 1:numel(geometries)
     for point = [5,6]
         Jdh = dh_jacobian(q,0,point,dh);
         Jpoe = poe_jacobian(q,0,point,poe);
-        assert(isequal(Jdh,dh_jacobian_numerical(q.',0,point,dh)));
-        assert(isequal(Jpoe,poe_jacobian_numerical(q.',0,point,poe)));
+        assert(isequal(Jdh,dh_jacobian(q.',0,point,dh)));
+        assert(isequal(Jpoe,poe_jacobian(q.',0,point,poe)));
         Jfd = finite_difference(q,point,dh);
         [~,~,~,T0] = dh_fk(q,dh);
         for frame = 0:6
