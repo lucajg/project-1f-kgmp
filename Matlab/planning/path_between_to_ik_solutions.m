@@ -9,6 +9,7 @@ n_samples = 19999;
 s_min = 0;
 s_max = 1;
 singular_tol = 1e-6;        % Threshold on abs(sin(q5)).
+sigma_tol = 1e-3;           % Rejection threshold for the scaled Jacobian (L = 2 m).
 goal_tol = 1e-6;            % Maximum final joint error, in radians.
 q_min = -pi * ones(6,1);
 q_max =  pi * ones(6,1);
@@ -80,10 +81,14 @@ for k = 1:n_samples
     q_planned(:,k) = q_current;
     q_previous = q_current;
 
-    % Monitor the full robot Jacobian, including both arm and wrist effects.
+    % Check the full robot Jacobian, including both arm and wrist effects.
     J = poe_jacobian(q_planned(:,k), 0, 6, poe_model);
     J_tilde = jacobian_scale * J;
     sigma_min(k) = min(svd(J_tilde));
+    if sigma_min(k) <= sigma_tol
+        error('Jacobian singularity margin too small at s = %.6f (sigma_min = %.3g <= %.3g).', ...
+            s_k, sigma_min(k), sigma_tol);
+    end
 
     % Verify the tool orientation and record its position using FK.
     [T_k, joint_positions] = poe_fk(q_planned(:,k), poe_model);
@@ -130,8 +135,16 @@ grid on;
 
 figure;
 plot(s_samples, sigma_min);
+yline(sigma_tol,'r--','Threshold');
 xlabel('Path parameter s');
 ylabel('\sigma_{min}(\tilde{J})');
+grid on;
+
+figure;
+plot(s_samples, joint_margin);
+yline(0,'r--');
+xlabel('Path parameter s');
+ylabel('Minimum joint-limit clearance (rad)');
 grid on;
 
 %% 7. Report the worst sampled singularity margin and pose errors
