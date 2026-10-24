@@ -27,6 +27,14 @@ dh_model = dh_data;
 T_d = poe_fk(q_start, poe_model);
 R_d = T_d(1:3,1:3);         % Desired tool orientation throughout the path.
 
+% The arm Jacobian maps q1:q3 velocities to wrist-centre linear velocity.
+J_wrist_start = poe_jacobian(q_start, 0, 5, poe_model);
+arm_det_start = det(J_wrist_start(1:3,1:3));
+arm_sign = sign(arm_det_start);
+if arm_sign == 0
+    error('The initial arm Jacobian is singular; no regular arm sign is defined.');
+end
+
 Q_ik = analytical_ik_6r(T_d, poe_model, dh_model);
 q_goal = Q_ik(:,goal_index);
 q_arm_at_s = @(s) (1-s)*q_start(1:3) + s*q_goal(1:3);
@@ -37,6 +45,7 @@ q_planned = zeros(6,n_samples);       % Joint configurations, one per column.
 p_planned = zeros(3,n_samples);       % Tool positions in the base frame.
 joint_margin = nan(1,n_samples);      % Smallest distance to a joint limit.
 sigma_min = zeros(1,n_samples);       % Smallest scaled Jacobian singular value.
+arm_det = zeros(1,n_samples);         % Determinant of the wrist-centre arm Jacobian.
 theta = zeros(1,n_samples);           % Tool orientation error, in radians.
 error_position = zeros(1,n_samples);  % Tool position consistency error, in metres.
 
@@ -77,6 +86,16 @@ for k = 1:n_samples
     wrist_distance = vecnorm(q_candidates(4:6,:)-q_previous(4:6),2,1);
     [~, nearest] = min(wrist_distance);
     q_current = q_candidates(:,nearest);
+
+    % Both wrist candidates share this arm Jacobian. Its determinant must
+    % keep the initial nonzero sign at every sampled configuration.
+    J_wrist = poe_jacobian(q_current, 0, 5, poe_model);
+    arm_det(k) = det(J_wrist(1:3,1:3));
+    if sign(arm_det(k)) ~= arm_sign
+        error('Arm Jacobian determinant lost its initial sign at s = %.6f (det = %.3g, initial det = %.3g).', ...
+            s_k, arm_det(k), arm_det_start);
+    end
+
     joint_margin(k) = min([q_current-q_min; q_max-q_current]);
     q_planned(:,k) = q_current;
     q_previous = q_current;
@@ -146,6 +165,9 @@ yline(0,'r--');
 xlabel('Path parameter s');
 ylabel('Minimum joint-limit clearance (rad)');
 grid on;
+
+% Project all target-pose IK solutions and the selected path onto (q2,q3).
+ik_path_figure = plot_ik_path(Q_ik, q_planned, poe_model);
 
 %% 7. Report the worst sampled singularity margin and pose errors
 [sigma_worst, k_worst] = min(sigma_min);

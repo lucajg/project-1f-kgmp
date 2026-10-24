@@ -9,6 +9,7 @@ Explore arm singularities, tool workspace slices, and the IK branches of an inte
 | File | Purpose |
 | --- | --- |
 | [singularity_map.m](singularity_map.m) | Interactive pose controls, determinant map, workspace slice, and IK table. |
+| [plot_ik_path.m](plot_ik_path.m) | Static arm singularity map with numbered IK wrist branches and a connecting path. |
 | [check_singularity_map.m](check_singularity_map.m) | Check branch tracking, workspace curves, and actual UI callbacks. |
 | [private/match_ik_solutions.m](private/match_ik_solutions.m) | Match unordered IK solutions to persistent IDs. |
 | [private/singularity_map_data.m](private/singularity_map_data.m) | Cache the determinant grid and arm singularity contours. |
