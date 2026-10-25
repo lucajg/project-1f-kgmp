@@ -3,6 +3,7 @@ function [selected_path, q_goal, candidate_report] = path_between_to_ik_solution
 % Interpolate the arm joints (q1:q3), then continue the wrist joints (q4:q6)
 % while holding the tool orientation fixed. The path parameter s is not time.
 % q_start is a six-element joint vector in radians (row or column).
+% Its joint limits and wrist/Jacobian margins are checked before goal enumeration.
 % Return the selected trajectory and diagnostics, its goal, and candidate outcomes.
 % selected_path.s contains the path parameter for each column of selected_path.q.
 % Optional named inputs and defaults:
@@ -31,31 +32,51 @@ goal_tol = options.goal_tol;         % Maximum final joint error, in radians.
 q_min = -pi * ones(6,1);
 q_max =  pi * ones(6,1);
 L = 2;                     % Characteristic length in metres.
+% Scale linear velocity by 1/L before comparing it with angular velocity.
+jacobian_scale = [eye(3)/L, zeros(3,3); zeros(3,3), eye(3)];
+
+outside = find(q_start < q_min | q_start > q_max);
+if ~isempty(outside)
+    error('path_between_to_ik_solutions:StartJointLimits', ...
+        'The initial configuration violates joint limits (%s).', ...
+        strjoin(compose("q%d",outside),", "));
+end
 
 % A regular wrist keeps the sign of sin(q5) along a continuous motion.
-if abs(sin(q_start(5))) <= singular_tol
-    error('The initial wrist is singular; no regular wrist sign is defined.');
+wrist_sine = sin(q_start(5));
+if abs(wrist_sine) <= singular_tol
+    error('path_between_to_ik_solutions:StartWristSingularity', ...
+        'The initial wrist has abs(sin(q5)) = %.3g <= singular_tol = %.3g.', ...
+        abs(wrist_sine),singular_tol);
 end
-wrist_sign = sign(sin(q_start(5)));
+wrist_sign = sign(wrist_sine);
 
-%% 2. Enumerate and screen candidate goals
 poe_model = poe_data;
 dh_model = dh_data;
-T_d = poe_fk(q_start, poe_model);
+[T_d,joint_positions,joint_axes] = poe_fk(q_start,poe_model);
 R_d = T_d(1:3,1:3);         % Desired tool orientation throughout the path.
 
-% The arm Jacobian maps q1:q3 velocities to wrist-centre linear velocity.
-J_wrist_start = poe_jacobian(q_start, 0, 5, poe_model);
+% Use the same conditioning threshold as endpoint and sampled-path validation.
+J_start = point_jacobian(joint_positions,joint_axes,joint_positions(:,6),eye(3));
+sigma_start = min(svd(jacobian_scale * J_start));
+if sigma_start <= sigma_tol
+    error('path_between_to_ik_solutions:StartJacobianMargin', ...
+        'The initial configuration has scaled sigma_min = %.3g <= sigma_tol = %.3g.', ...
+        sigma_start,sigma_tol);
+end
+
+% The determinant labels the arm branch after the conditioning check.
+J_wrist_start = point_jacobian(joint_positions,joint_axes,joint_positions(:,5),eye(3));
 arm_det_start = det(J_wrist_start(1:3,1:3));
 arm_sign = sign(arm_det_start);
 if arm_sign == 0
-    error('The initial arm Jacobian is singular; no regular arm sign is defined.');
+    error('path_between_to_ik_solutions:StartArmSign', ...
+        'A nonzero initial arm determinant sign could not be determined.');
 end
 
+%% 2. Enumerate and screen candidate goals
 Q_ik = analytical_ik_6r(T_d, poe_model, dh_model);
 
-% Scale linear velocity by 1/L before comparing it with angular velocity.
-jacobian_scale = [eye(3)/L, zeros(3,3); zeros(3,3), eye(3)];
 settings = struct('s_samples',linspace(0,1,options.n_samples), ...
     'q_min',q_min,'q_max',q_max,'arm_sign',arm_sign,'wrist_sign',wrist_sign, ...
     'jacobian_scale',jacobian_scale,'tool_offset',[dh_model.d(6); 0; 0], ...

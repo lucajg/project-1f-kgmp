@@ -9,7 +9,7 @@ The code is grouped by responsibility. Each topic folder contains its implementa
 | File | Purpose |
 | --- | --- |
 | [curo6r_setup.m](curo6r_setup.m) | Add the explicit list of project folders to the current MATLAB session. |
-| [run_checks.m](run_checks.m) | Configure the path and run the existing FK, Jacobian, IK, and optional UI/symbolic checks. |
+| [run_checks.m](run_checks.m) | Configure the path and run FK, Jacobian, IK, planning, and optional UI/symbolic checks. |
 
 ## Setup
 
@@ -39,6 +39,7 @@ Individual checks remain available after setup:
 | [check_dh_poe](fk/README.md#checks) | DH, PoE, and URDF poses and joint axes. |
 | [check_jacobians](jacobian/README.md#checks) | Numerical comparisons, finite differences, and optionally symbolic equality. |
 | [check_analytical_ik](ik/README.md#checks) | Arm and wrist branches, round trips, singularities, and invalid targets. |
+| [check_path_planning](planning/check_path_planning.m) | Start joint limits, wrist/Jacobian thresholds, a near-singular arm, and a regular path with row/column inputs. |
 | [check_singularity_map](singularity/README.md#checks) | Branch tracking, workspace curves, and UI callbacks. |
 
 `check_jacobians` itself retains its existing default of including symbolic checks; call `check_jacobians(false)` for numerical checks alone. The [joint-axis viewer](visualization/README.md#checks) has a separate manual UI check.

@@ -1,6 +1,6 @@
 function run_checks(include_symbolic,include_ui)
 %RUN_CHECKS Run the CuRo6R checks after configuring the MATLAB path.
-% run_checks runs numerical FK, Jacobian, IK, and invisible app checks.
+% run_checks runs numerical FK, Jacobian, IK, planning, and invisible app checks.
 % run_checks(true) also runs exact Jacobian checks (Symbolic Math Toolbox).
 % run_checks(false,false) runs numerical checks without creating figures.
 if nargin < 1
@@ -16,6 +16,7 @@ curo6r_setup;
 check_dh_poe;
 check_jacobians(include_symbolic);
 check_analytical_ik;
+check_path_planning;
 if include_ui
     check_singularity_map;
 else
