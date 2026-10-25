@@ -4,6 +4,7 @@ function [selected_path, q_goal, candidate_report] = path_between_to_ik_solution
 % while holding the tool orientation fixed. The path parameter s is not time.
 % q_start is a six-element joint vector in radians (row or column).
 % Return the selected trajectory and diagnostics, its goal, and candidate outcomes.
+% selected_path.s contains the path parameter for each column of selected_path.q.
 % Optional named inputs and defaults:
 %   n_samples=19999, singular_tol=1e-6, sigma_tol=1e-3, goal_tol=1e-6,
 %   plot_results=true, verbose=true.
@@ -24,9 +25,6 @@ end
 %% 1. Validate the start configuration and choose numerical settings
 validateattributes(q_start, {'numeric'}, {'real','finite','vector','numel',6});
 q_start = q_start(:);
-n_samples = options.n_samples;
-s_min = 0;
-s_max = 1;
 singular_tol = options.singular_tol; % Threshold on abs(sin(q5)).
 sigma_tol = options.sigma_tol;       % Threshold for the scaled Jacobian (L = 2 m).
 goal_tol = options.goal_tol;         % Maximum final joint error, in radians.
@@ -100,138 +98,19 @@ for i = find(finite_angles)
     end
 end
 
-%% 3. Allocate the sampled path and its diagnostics
-s_samples = linspace(s_min,s_max,n_samples);
-q_planned = zeros(6,n_samples);       % Joint configurations, one per column.
-p_planned = zeros(3,n_samples);       % Tool positions in the base frame.
-joint_margin = nan(1,n_samples);      % Smallest distance to a joint limit.
-sigma_min = zeros(1,n_samples);       % Smallest scaled Jacobian singular value.
-arm_det = zeros(1,n_samples);         % Determinant of the wrist-centre arm Jacobian.
-theta = zeros(1,n_samples);           % Tool orientation error, in radians.
-error_position = zeros(1,n_samples);  % Tool position consistency error, in metres.
-
-tool_offset = [dh_model.d(6); 0; 0];  % Wrist-to-tool offset in tool coordinates.
-
-%% 4. Try the original wrist continuation for every eligible goal
-% Reuse the sample buffers; only a complete, validated path can be selected.
-% These checks validate sampled configurations, not the intervals between them.
+%% 3. Trace a separate path attempt for every eligible goal
+settings = struct('s_samples',linspace(0,1,options.n_samples), ...
+    'q_min',q_min,'q_max',q_max,'arm_sign',arm_sign, ...
+    'jacobian_scale',jacobian_scale,'tool_offset',[dh_model.d(6); 0; 0], ...
+    'singular_tol',singular_tol,'sigma_tol',sigma_tol,'goal_tol',goal_tol);
 goal_index = [];
 failed_attempts = cell(1,size(Q_ik,2));
 for i = find(eligible_goals)
-    q_candidate = Q_ik(:,i);
-    q_arm_at_s = @(s) (1-s)*q_start(1:3) + s*q_candidate(1:3);
-    q_previous = q_start;
-    rejection_reason = "";
-    n_valid = 0;
-    rejected_q = zeros(6,0);
-    rejected_sigma = NaN;
-    for k = 1:n_samples
-        s_k = s_samples(k);
-        q_arm = q_arm_at_s(s_k);
-
-        % Solve orientation IK for this arm configuration.
-        [wrist_solutions, is_singular] = analytical_ik_wrist( ...
-            q_arm, R_d, poe_model, singular_tol);
-        if is_singular
-            rejection_reason = sprintf('Wrist singularity at s = %.6f.',s_k);
-            break
-        end
-
-        % Express both solutions near the previous wrist angles. atan2(sin,cos)
-        % wraps each angular difference to [-pi, pi], removing 2*pi jumps.
-        delta = wrist_solutions - q_previous(4:6);
-        wrist_candidates = q_previous(4:6) + atan2(sin(delta),cos(delta));
-        q_candidates = [repmat(q_arm,1,size(wrist_candidates,2)); wrist_candidates];
-
-        % Keep only candidates within all six joint limits and on the same
-        % regular wrist branch as the start configuration.
-        within_limits = all(q_candidates >= q_min & q_candidates <= q_max,1);
-        same_wrist_sign = sign(sin(wrist_candidates(2,:))) == wrist_sign;
-        valid = within_limits & same_wrist_sign;
-        if ~any(valid)
-            rejected_q = q_candidates; % Keep both unwrapped wrist candidates.
-            wrist_reasons = strings(1,size(q_candidates,2));
-            for branch = 1:size(q_candidates,2)
-                reasons = strings(0,1);
-                if ~within_limits(branch)
-                    outside = find(q_candidates(:,branch) < q_min | q_candidates(:,branch) > q_max);
-                    reasons(end+1) = "joint limits (" + strjoin(compose("q%d",outside),", ") + ")";
-                end
-                if ~same_wrist_sign(branch)
-                    reasons(end+1) = "opposite wrist sign";
-                end
-                wrist_reasons(branch) = sprintf('Wrist candidate %d: %s',branch,strjoin(reasons,", "));
-            end
-            rejection_reason = sprintf('No admissible wrist candidate at s = %.6f; %s', ...
-                s_k,strjoin(wrist_reasons,"; "));
-            break
-        end
-        q_candidates = q_candidates(:,valid);
-
-        % Choose the admissible wrist requiring the smallest joint-space step.
-        wrist_distance = vecnorm(q_candidates(4:6,:)-q_previous(4:6),2,1);
-        [~, nearest] = min(wrist_distance);
-        q_current = q_candidates(:,nearest);
-
-        % Both wrist candidates share this arm Jacobian. Its determinant must
-        % keep the initial nonzero sign at every sampled configuration.
-        J_wrist = poe_jacobian(q_current, 0, 5, poe_model);
-        arm_det(k) = det(J_wrist(1:3,1:3));
-        reasons = strings(0,1);
-        if sign(arm_det(k)) ~= arm_sign
-            reasons(end+1) = sprintf('Arm determinant changed sign at s = %.6f.',s_k);
-        end
-
-        % Check both Jacobian conditions before rejecting this configuration.
-        J = poe_jacobian(q_current, 0, 6, poe_model);
-        J_tilde = jacobian_scale * J;
-        sigma_min(k) = min(svd(J_tilde));
-        if sigma_min(k) <= sigma_tol
-            reasons(end+1) = sprintf('sigma_min = %.3g <= %.3g at s = %.6f.', ...
-                sigma_min(k), sigma_tol, s_k);
-        end
-        if ~isempty(reasons)
-            rejected_q = q_current;
-            rejected_sigma = sigma_min(k);
-            rejection_reason = strjoin(reasons,"; ");
-            break
-        end
-
-        joint_margin(k) = min([q_current-q_min; q_max-q_current]);
-        q_planned(:,k) = q_current;
-        q_previous = q_current;
-
-        % Verify the tool orientation and record its position using FK.
-        [T_k, joint_positions] = poe_fk(q_planned(:,k), poe_model);
-        R_k = T_k(1:3,1:3);
-        R_error = R_d' * R_k;
-        cos_theta = (trace(R_error)-1)/2;
-        theta(k) = acos(min(max(cos_theta,-1),1));  % Clamp numerical roundoff.
-        p_planned(:,k) = T_k(1:3,4);
-
-        % Consistency with the current wrist centre and desired orientation;
-        % this does not prescribe an independent Cartesian position path.
-        p_desired = joint_positions(:,5) + R_d * tool_offset;
-        error_position(k) = norm(p_planned(:,k)-p_desired);
-        n_valid = k; % Advance only after this sample has completed every check.
-    end
-
-    if strlength(rejection_reason) == 0
-        % Check actual joint angles: a 2*pi offset is distinct with bounded joints.
-        goal_error = norm(q_planned(:,end)-q_candidate,inf);
-        if goal_error > goal_tol
-            rejection_reason = sprintf('Path misses goal by %.3g rad.',goal_error);
-        end
-    end
-    if strlength(rejection_reason) > 0
-        candidate_status(i) = "Path rejected: " + rejection_reason;
+    attempt = trace_arm_segment(q_start,Q_ik(:,i),R_d,poe_model,settings);
+    if strlength(attempt.reason) > 0
+        candidate_status(i) = "Path rejected: " + attempt.reason;
         if options.plot_results
-            % Never retain unfilled columns or samples left over from another goal.
-            failed_attempts{i} = struct('s',s_samples(1:n_valid), ...
-                'q',q_planned(:,1:n_valid),'p',p_planned(:,1:n_valid), ...
-                'sigma_min',sigma_min(1:n_valid),'reason',rejection_reason, ...
-                's_failed',s_k,'arm_failed',q_arm, ...
-                'rejected_q',rejected_q,'rejected_sigma',rejected_sigma);
+            failed_attempts{i} = attempt;
         end
         continue
     end
@@ -239,13 +118,11 @@ for i = find(eligible_goals)
     % Keep the first success, while still testing all remaining candidates.
     if isempty(goal_index)
         goal_index = i;
-        selected_path = struct('q',q_planned,'p',p_planned, ...
-            'joint_margin',joint_margin,'sigma_min',sigma_min,'arm_det',arm_det, ...
-            'theta',theta,'error_position',error_position,'goal_error',goal_error);
+        selected_path = attempt.path;
     end
 end
 
-%% 5. Select a validated path and report path closure
+%% 4. Select a validated path and report path closure
 candidate_report = table((1:size(Q_ik,2)).',candidate_status, ...
     'VariableNames',{'IK_index','Status'});
 if options.verbose
@@ -255,7 +132,7 @@ if isempty(goal_index)
     if options.plot_results
         for i = find(~cellfun(@isempty,failed_attempts))
             plot_failed_path(failed_attempts{i},i,Q_ik,poe_model, ...
-                q_min,q_max,wrist_sign,sigma_tol);
+                q_min,q_max,sigma_tol);
         end
         drawnow;
     end
@@ -267,23 +144,17 @@ end
 q_goal = Q_ik(:,goal_index);
 q_planned = selected_path.q;
 p_planned = selected_path.p;
-joint_margin = selected_path.joint_margin;
-sigma_min = selected_path.sigma_min;
-arm_det = selected_path.arm_det;
-theta = selected_path.theta;
-error_position = selected_path.error_position;
-goal_error = selected_path.goal_error;
 
 if options.verbose
     position_closure = norm(p_planned(:,end) - p_planned(:,1))
     joint_change = norm(q_planned(:,end) - q_planned(:,1))
 end
 
-%% 6. Plot the joint path, tool path, and singularity margin
+%% 5. Plot the joint path, tool path, and singularity margin
 if options.plot_results
     figure;
     subplot(1,2,1);
-    plot(s_samples, q_planned.');
+    plot(selected_path.s, q_planned.');
     xlabel('Path parameter s');
     ylabel('Joint angle (rad)');
     legend('q_1','q_2','q_3','q_4','q_5','q_6');
@@ -300,29 +171,29 @@ if options.plot_results
     grid on;
 
     figure;
-    plot(s_samples, sigma_min);
+    plot(selected_path.s, selected_path.sigma_min);
     yline(sigma_tol,'r--','Threshold');
     xlabel('Path parameter s');
     ylabel('$\sigma_{\min}(\tilde{J})$','Interpreter','latex');
     grid on;
 
     figure;
-    plot(s_samples, joint_margin);
+    plot(selected_path.s, selected_path.joint_margin);
     yline(0,'r--');
     xlabel('Path parameter s');
     ylabel('Minimum joint-limit clearance (rad)');
     grid on;
 
     % Project all target-pose IK solutions and the selected path onto (q2,q3).
-    ik_path_figure = plot_ik_path(Q_ik, q_planned, poe_model);
+    plot_ik_path(Q_ik, q_planned, poe_model);
 end
 
-%% 7. Report the worst sampled singularity margin and pose errors
+%% 6. Report the worst sampled singularity margin and pose errors
 if options.verbose
-    [sigma_worst, k_worst] = min(sigma_min);
+    [sigma_worst, k_worst] = min(selected_path.sigma_min);
     sigma_worst
-    s_worst = s_samples(k_worst)
-    max_orientation_error_angle = max(theta)
-    max_discrepancy_desired_vs_planned_position = max(error_position)
+    s_worst = selected_path.s(k_worst)
+    max_orientation_error_angle = max(selected_path.theta)
+    max_discrepancy_desired_vs_planned_position = max(selected_path.error_position)
 end
 end
