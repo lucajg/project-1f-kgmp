@@ -56,53 +56,13 @@ Q_ik = analytical_ik_6r(T_d, poe_model, dh_model);
 
 % Scale linear velocity by 1/L before comparing it with angular velocity.
 jacobian_scale = [eye(3)/L, zeros(3,3); zeros(3,3), eye(3)];
-% Exclude the starting posture (modulo 2*pi), invalid endpoints, and the
-% opposite or singular wrist branch. The IK solver already verifies the pose.
-delta = atan2(sin(Q_ik-q_start),cos(Q_ik-q_start));
-same_start = max(abs(delta),[],1) <= goal_tol;
-finite_angles = all(isfinite(Q_ik),1);
-within_limits = finite_angles & all(Q_ik >= q_min & Q_ik <= q_max,1);
-same_wrist_sign = sign(sin(Q_ik(5,:))) == wrist_sign;
-regular_wrist = abs(sin(Q_ik(5,:))) > singular_tol;
-eligible_goals = ~same_start & within_limits & same_wrist_sign & regular_wrist;
-candidate_status = strings(size(Q_ik,2),1);
-candidate_status(~finite_angles) = "Nonfinite joint angles";
-
-% Collect every applicable endpoint reason, even after an earlier check fails.
-% Nonfinite configurations cannot meaningfully be checked by FK/Jacobians.
-for i = find(finite_angles)
-    reasons = strings(0,1);
-    if same_start(i)
-        reasons(end+1) = "Starting posture (modulo 2*pi)";
-    end
-    if ~within_limits(i)
-        reasons(end+1) = "Joint-limit violation";
-    end
-    if ~regular_wrist(i)
-        reasons(end+1) = "Wrist singularity threshold violated";
-    end
-    if sign(sin(Q_ik(5,i))) == -wrist_sign
-        reasons(end+1) = "Opposite wrist sign";
-    end
-    J_wrist = poe_jacobian(Q_ik(:,i),0,5,poe_model);
-    J = poe_jacobian(Q_ik(:,i),0,6,poe_model);
-    if sign(det(J_wrist(1:3,1:3))) ~= arm_sign
-        reasons(end+1) = "Opposite or singular arm sign";
-    end
-    if min(svd(jacobian_scale * J)) <= sigma_tol
-        reasons(end+1) = "Endpoint sigma_min at or below threshold";
-    end
-    if ~isempty(reasons)
-        eligible_goals(i) = false;
-        candidate_status(i) = strjoin(reasons,"; ");
-    end
-end
-
-%% 3. Trace a separate path attempt for every eligible goal
 settings = struct('s_samples',linspace(0,1,options.n_samples), ...
-    'q_min',q_min,'q_max',q_max,'arm_sign',arm_sign, ...
+    'q_min',q_min,'q_max',q_max,'arm_sign',arm_sign,'wrist_sign',wrist_sign, ...
     'jacobian_scale',jacobian_scale,'tool_offset',[dh_model.d(6); 0; 0], ...
     'singular_tol',singular_tol,'sigma_tol',sigma_tol,'goal_tol',goal_tol);
+[eligible_goals,candidate_status] = screen_ik_goals(Q_ik,q_start,poe_model,settings);
+
+%% 3. Trace a separate path attempt for every eligible goal
 goal_index = [];
 failed_attempts = cell(1,size(Q_ik,2));
 for i = find(eligible_goals)
