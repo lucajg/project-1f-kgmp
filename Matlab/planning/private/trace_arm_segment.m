@@ -51,10 +51,10 @@ for k = 1:n_samples
         break
     end
 
-    % Reuse one FK evaluation for both base-frame Jacobians and pose diagnostics.
+    % Reuse FK for the arm-position block, full tool Jacobian, and pose diagnostics.
     [T_k, joint_positions, joint_axes] = poe_fk(q_current, poe_model);
-    J_wrist = point_jacobian(joint_positions,joint_axes,joint_positions(:,5),eye(3));
-    arm_det(k) = det(J_wrist(1:3,1:3));
+    J_arm = cross(joint_axes(:,1:3),joint_positions(:,5)-joint_positions(:,1:3),1);
+    arm_det(k) = det(J_arm);
     reasons = strings(0,1);
     if sign(arm_det(k)) ~= settings.arm_sign
         reasons(end+1) = sprintf('Arm determinant changed sign at s = %.6f.',s_k);

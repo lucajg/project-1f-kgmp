@@ -33,7 +33,7 @@ No other project folder. Numerical inputs need no additional toolbox; symbolic i
 
 `J = point_jacobian(p, w, pk, R0frame)` accepts `3 x n` revolute joint origins `p` and unit axes `w`, a `3 x 1` reference point `pk`, and a `3 x 3` rotation from the expression frame to the base frame. Positions and axes are expressed in the base frame. It returns a `6 x n` geometric Jacobian with linear velocity above angular velocity; use `eye(3)` for base-frame expression. Inputs may be numerical or symbolic.
 
-[dh_jacobian](../jacobian/dh_jacobian.m) and [poe_jacobian](../jacobian/poe_jacobian.m) use this calculation after FK. The [path tracer](../planning/private/trace_arm_segment.m) reuses one FK result for the wrist-centre Jacobian, tool Jacobian, and pose diagnostics at each sample.
+[dh_jacobian](../jacobian/dh_jacobian.m) and [poe_jacobian](../jacobian/poe_jacobian.m) use this calculation after FK. The [path tracer](../planning/private/trace_arm_segment.m) reuses one FK result for the arm-position block, tool Jacobian, and pose diagnostics at each sample.
 
 These helpers are on the MATLAB path because their callers live in different folders. Helpers used by just one topic belong in that topic's `private/` folder.
 

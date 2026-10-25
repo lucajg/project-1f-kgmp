@@ -33,11 +33,11 @@ for i = 1:n_goals
         reasons(end+1) = "Opposite wrist sign";
     end
 
-    % Both endpoint Jacobians use the same joint origins and axes in the base frame.
+    % Only the 3x3 arm-position block is needed at the wrist centre.
     [~,joint_positions,joint_axes] = poe_fk(q_goal,poe_model);
-    J_wrist = point_jacobian(joint_positions,joint_axes,joint_positions(:,5),eye(3));
+    J_arm = cross(joint_axes(:,1:3),joint_positions(:,5)-joint_positions(:,1:3),1);
     J = point_jacobian(joint_positions,joint_axes,joint_positions(:,6),eye(3));
-    if sign(det(J_wrist(1:3,1:3))) ~= settings.arm_sign
+    if sign(det(J_arm)) ~= settings.arm_sign
         reasons(end+1) = "Opposite or singular arm sign";
     end
     if min(svd(settings.jacobian_scale * J)) <= settings.sigma_tol

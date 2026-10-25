@@ -66,8 +66,8 @@ if sigma_start <= sigma_tol
 end
 
 % The determinant labels the arm branch after the conditioning check.
-J_wrist_start = point_jacobian(joint_positions,joint_axes,joint_positions(:,5),eye(3));
-arm_det_start = det(J_wrist_start(1:3,1:3));
+J_arm_start = cross(joint_axes(:,1:3),joint_positions(:,5)-joint_positions(:,1:3),1);
+arm_det_start = det(J_arm_start);
 arm_sign = sign(arm_det_start);
 if arm_sign == 0
     error('path_between_to_ik_solutions:StartArmSign', ...
