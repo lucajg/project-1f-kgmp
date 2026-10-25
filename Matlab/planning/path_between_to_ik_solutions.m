@@ -1,19 +1,34 @@
-function [selected_path, q_goal, candidate_report] = path_between_to_ik_solutions(q_start)
+function [selected_path, q_goal, candidate_report] = path_between_to_ik_solutions(q_start,options)
 % Connect two IK configurations of the same tool pose.
 % Interpolate the arm joints (q1:q3), then continue the wrist joints (q4:q6)
 % while holding the tool orientation fixed. The path parameter s is not time.
 % q_start is a six-element joint vector in radians (row or column).
 % Return the selected trajectory and diagnostics, its goal, and candidate outcomes.
+% Optional named inputs and defaults:
+%   n_samples=19999, singular_tol=1e-6, sigma_tol=1e-3, goal_tol=1e-6,
+%   plot_results=true, verbose=true.
+% Example: path_between_to_ik_solutions(q_start,n_samples=5001,plot_results=false)
+
+arguments
+    q_start
+    options.n_samples (1,1) double ...
+        {mustBeReal,mustBeFinite,mustBeInteger,mustBeGreaterThanOrEqual(options.n_samples,2)} = 19999
+    options.singular_tol (1,1) double {mustBeReal,mustBeFinite,mustBeNonnegative} = 1e-6
+    options.sigma_tol (1,1) double {mustBeReal,mustBeFinite,mustBeNonnegative} = 1e-3
+    options.goal_tol (1,1) double {mustBeReal,mustBeFinite,mustBeNonnegative} = 1e-6
+    options.plot_results (1,1) logical = true
+    options.verbose (1,1) logical = true
+end
 
 %% 1. Validate the start configuration and choose numerical settings
 validateattributes(q_start, {'numeric'}, {'real','finite','vector','numel',6});
 q_start = q_start(:);
-n_samples = 19999;
+n_samples = options.n_samples;
 s_min = 0;
 s_max = 1;
-singular_tol = 1e-6;        % Threshold on abs(sin(q5)).
-sigma_tol = 1e-3;           % Rejection threshold for the scaled Jacobian (L = 2 m).
-goal_tol = 1e-6;            % Maximum final joint error, in radians.
+singular_tol = options.singular_tol; % Threshold on abs(sin(q5)).
+sigma_tol = options.sigma_tol;       % Threshold for the scaled Jacobian (L = 2 m).
+goal_tol = options.goal_tol;         % Maximum final joint error, in radians.
 q_min = -pi * ones(6,1);
 q_max =  pi * ones(6,1);
 L = 2;                     % Characteristic length in metres.
@@ -180,11 +195,15 @@ end
 %% 5. Select a validated path and report path closure
 candidate_report = table((1:size(Q_ik,2)).',candidate_status, ...
     'VariableNames',{'IK_index','Status'});
-disp(candidate_report);
+if options.verbose
+    disp(candidate_report);
+end
 if isempty(goal_index)
     error('No candidate passed straight-arm-path validation. A different arm path may still exist.');
 end
-fprintf('Selected IK solution %d after sampled path validation.\n',goal_index);
+if options.verbose
+    fprintf('Selected IK solution %d after sampled path validation.\n',goal_index);
+end
 q_goal = Q_ik(:,goal_index);
 q_planned = selected_path.q;
 p_planned = selected_path.p;
@@ -195,49 +214,55 @@ theta = selected_path.theta;
 error_position = selected_path.error_position;
 goal_error = selected_path.goal_error;
 
-position_closure = norm(p_planned(:,end) - p_planned(:,1))
-joint_change = norm(q_planned(:,end) - q_planned(:,1))
+if options.verbose
+    position_closure = norm(p_planned(:,end) - p_planned(:,1))
+    joint_change = norm(q_planned(:,end) - q_planned(:,1))
+end
 
 %% 6. Plot the joint path, tool path, and singularity margin
-figure;
-subplot(1,2,1);
-plot(s_samples, q_planned.');
-xlabel('Path parameter s');
-ylabel('Joint angle (rad)');
-legend('q_1','q_2','q_3','q_4','q_5','q_6');
-title('Joint space');
-grid on;
+if options.plot_results
+    figure;
+    subplot(1,2,1);
+    plot(s_samples, q_planned.');
+    xlabel('Path parameter s');
+    ylabel('Joint angle (rad)');
+    legend('q_1','q_2','q_3','q_4','q_5','q_6');
+    title('Joint space');
+    grid on;
 
-subplot(1,2,2);
-plot3(p_planned(1,:), p_planned(2,:), p_planned(3,:));
-xlabel('x (m)');
-ylabel('y (m)');
-zlabel('z (m)');
-title('Task space');
-axis equal;
-grid on;
+    subplot(1,2,2);
+    plot3(p_planned(1,:), p_planned(2,:), p_planned(3,:));
+    xlabel('x (m)');
+    ylabel('y (m)');
+    zlabel('z (m)');
+    title('Task space');
+    axis equal;
+    grid on;
 
-figure;
-plot(s_samples, sigma_min);
-yline(sigma_tol,'r--','Threshold');
-xlabel('Path parameter s');
-ylabel('\sigma_{min}(\tilde{J})');
-grid on;
+    figure;
+    plot(s_samples, sigma_min);
+    yline(sigma_tol,'r--','Threshold');
+    xlabel('Path parameter s');
+    ylabel('\sigma_{min}(\tilde{J})');
+    grid on;
 
-figure;
-plot(s_samples, joint_margin);
-yline(0,'r--');
-xlabel('Path parameter s');
-ylabel('Minimum joint-limit clearance (rad)');
-grid on;
+    figure;
+    plot(s_samples, joint_margin);
+    yline(0,'r--');
+    xlabel('Path parameter s');
+    ylabel('Minimum joint-limit clearance (rad)');
+    grid on;
 
-% Project all target-pose IK solutions and the selected path onto (q2,q3).
-ik_path_figure = plot_ik_path(Q_ik, q_planned, poe_model);
+    % Project all target-pose IK solutions and the selected path onto (q2,q3).
+    ik_path_figure = plot_ik_path(Q_ik, q_planned, poe_model);
+end
 
 %% 7. Report the worst sampled singularity margin and pose errors
-[sigma_worst, k_worst] = min(sigma_min);
-sigma_worst
-s_worst = s_samples(k_worst)
-max_orientation_error_angle = max(theta)
-max_discrepancy_desired_vs_planned_position = max(error_position)
+if options.verbose
+    [sigma_worst, k_worst] = min(sigma_min);
+    sigma_worst
+    s_worst = s_samples(k_worst)
+    max_orientation_error_angle = max(theta)
+    max_discrepancy_desired_vs_planned_position = max(error_position)
+end
 end
