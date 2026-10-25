@@ -1,8 +1,9 @@
-function [fig, ax] = plot_ik_path(Q_ik, q_path, poe_model, path_complete)
+function [fig, ax] = plot_ik_path(Q_ik, q_path, poe_model, path_complete, ax)
 %PLOT_IK_PATH Show target-pose IK solutions and a path on the arm singularity map.
 % Columns of Q_ik are numbered as returned by analytical_ik_6r.
 % Labels + and - denote sign(sin(q5)); 0 denotes a singular wrist.
 % Set path_complete=false for a failed attempt; q_path may then be empty.
+% Supply ax to draw into existing axes instead of opening another figure.
 if nargin < 4
     path_complete = true;
 end
@@ -21,9 +22,14 @@ arm_positive_color = [1 .94 .80];
 wrist_signs = sign(sin(Q_ik(5,:)));
 wrist_signs(abs(sin(Q_ik(5,:))) <= 1e-10) = 0;
 
-fig = figure('Name',plot_title,'Color','w', ...
-    'Position',[100 100 900 680]);
-ax = axes(fig);
+if nargin < 5 || isempty(ax)
+    fig = figure('Name',plot_title,'Color','w', ...
+        'Position',[100 100 900 680]);
+    ax = axes(fig);
+else
+    fig = ancestor(ax,'figure');
+    cla(ax);
+end
 hold(ax,'on');
 
 % Shade the arm regions using the same determinant convention as the planner.
@@ -33,7 +39,7 @@ det_limit = max(abs(arm_det_map(:)));
 contourf(ax,map.angles,map.angles,arm_det_map,[-det_limit 0 det_limit], ...
     'LineStyle','none','HandleVisibility','off');
 colormap(ax,[arm_negative_color; arm_positive_color]);
-caxis(ax,[-det_limit det_limit]);
+clim(ax,[-det_limit det_limit]);
 patch(ax,nan,nan,arm_negative_color,'EdgeColor','none', ...
     'DisplayName','det(J_{arm}) < 0');
 patch(ax,nan,nan,arm_positive_color,'EdgeColor','none', ...
