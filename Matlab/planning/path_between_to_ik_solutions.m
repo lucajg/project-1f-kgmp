@@ -6,7 +6,7 @@ function [selected_path, q_goal, candidate_report] = path_between_to_ik_solution
 % Return the selected trajectory and diagnostics, its goal, and candidate outcomes.
 % selected_path.s contains the path parameter for each column of selected_path.q.
 % Optional named inputs and defaults:
-%   n_samples=19999, singular_tol=1e-6, sigma_tol=1e-3, goal_tol=1e-6,
+%   n_samples=10000, singular_tol=1e-6, sigma_tol=1e-3, goal_tol=1e-6,
 %   plot_results=true, verbose=true.
 % If every attempt fails, plot_results shows their valid prefixes before erroring.
 % Example: path_between_to_ik_solutions(q_start,n_samples=5001,plot_results=false)
@@ -14,7 +14,7 @@ function [selected_path, q_goal, candidate_report] = path_between_to_ik_solution
 arguments
     q_start
     options.n_samples (1,1) double ...
-        {mustBeReal,mustBeFinite,mustBeInteger,mustBeGreaterThanOrEqual(options.n_samples,2)} = 19999
+        {mustBeReal,mustBeFinite,mustBeInteger,mustBeGreaterThanOrEqual(options.n_samples,2)} = 10000
     options.singular_tol (1,1) double {mustBeReal,mustBeFinite,mustBeNonnegative} = 1e-6
     options.sigma_tol (1,1) double {mustBeReal,mustBeFinite,mustBeNonnegative} = 1e-3
     options.goal_tol (1,1) double {mustBeReal,mustBeFinite,mustBeNonnegative} = 1e-6
