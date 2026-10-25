@@ -50,7 +50,7 @@ The attempt also contains `reason`, `reason_codes`, `s_failed`, `arm_failed`, `r
 
 ## Console and figures
 
-`verbose=true` prints a short success summary with margins, endpoint closure, and pose residuals. On failure it prints attempted-path rejection reasons, or endpoint reasons when no candidate was eligible. `verbose=false` suppresses planner text. The returned data is independent of verbosity.
+`verbose=true` prints a short success summary with margins, endpoint closure, and pose residuals, or a failure summary. In both cases it lists every IK candidate with all endpoint or path rejection reasons and marks the selected candidate. `verbose=false` suppresses planner text. The returned data is independent of verbosity.
 
 `plot_results=true` shows the selected path in one figure, or valid prefixes of failed attempts when no path passed. Turning plotting off does not discard diagnostics.
 
