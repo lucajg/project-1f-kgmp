@@ -4,7 +4,6 @@
 
 %% 1. Choose the start configuration and numerical settings
 q_start = pi/2 * [1; -1; 1; -1; 1; -1];
-goal_index = 7;             % Column of the full-pose IK solution matrix.
 n_samples = 19999;
 s_min = 0;
 s_max = 1;
@@ -21,7 +20,7 @@ if abs(sin(q_start(5))) <= singular_tol
 end
 wrist_sign = sign(sin(q_start(5)));
 
-%% 2. Find the goal configuration and define the arm path
+%% 2. Enumerate and screen candidate goals
 poe_model = poe_data;
 dh_model = dh_data;
 T_d = poe_fk(q_start, poe_model);
@@ -36,8 +35,31 @@ if arm_sign == 0
 end
 
 Q_ik = analytical_ik_6r(T_d, poe_model, dh_model);
-q_goal = Q_ik(:,goal_index);
-q_arm_at_s = @(s) (1-s)*q_start(1:3) + s*q_goal(1:3);
+
+% Scale linear velocity by 1/L before comparing it with angular velocity.
+jacobian_scale = [eye(3)/L, zeros(3,3); zeros(3,3), eye(3)];
+% Exclude the starting posture (modulo 2*pi), invalid endpoints, and the
+% opposite or singular wrist branch. The IK solver already verifies the pose.
+delta = atan2(sin(Q_ik-q_start),cos(Q_ik-q_start));
+same_start = max(abs(delta),[],1) <= goal_tol;
+within_limits = all(isfinite(Q_ik) & Q_ik >= q_min & Q_ik <= q_max,1);
+same_wrist_sign = sign(sin(Q_ik(5,:))) == wrist_sign;
+regular_wrist = abs(sin(Q_ik(5,:))) > singular_tol;
+eligible_goals = ~same_start & within_limits & same_wrist_sign & regular_wrist;
+candidate_status = repmat("Endpoint excluded",size(Q_ik,2),1);
+
+% Matching endpoint signs is necessary, but does not validate a path.
+for i = find(eligible_goals)
+    J_wrist = poe_jacobian(Q_ik(:,i),0,5,poe_model);
+    J = poe_jacobian(Q_ik(:,i),0,6,poe_model);
+    if sign(det(J_wrist(1:3,1:3))) ~= arm_sign
+        eligible_goals(i) = false;
+        candidate_status(i) = "Opposite or singular arm sign";
+    elseif min(svd(jacobian_scale * J)) <= sigma_tol
+        eligible_goals(i) = false;
+        candidate_status(i) = "Endpoint below sigma_min threshold";
+    end
+end
 
 %% 3. Allocate the sampled path and its diagnostics
 s_samples = linspace(s_min,s_max,n_samples);
@@ -49,86 +71,125 @@ arm_det = zeros(1,n_samples);         % Determinant of the wrist-centre arm Jaco
 theta = zeros(1,n_samples);           % Tool orientation error, in radians.
 error_position = zeros(1,n_samples);  % Tool position consistency error, in metres.
 
-% Scale linear velocity by 1/L before comparing it with angular velocity.
-jacobian_scale = [eye(3)/L, zeros(3,3); zeros(3,3), eye(3)];
 tool_offset = [dh_model.d(6); 0; 0];  % Wrist-to-tool offset in tool coordinates.
-q_previous = q_start;
 
-%% 4. Continue the wrist along the prescribed arm path
-for k = 1:n_samples
-    s_k = s_samples(k);
-    q_arm = q_arm_at_s(s_k);
+%% 4. Try the original wrist continuation for every eligible goal
+% Reuse the sample buffers; only a complete, validated path can be selected.
+% These checks validate sampled configurations, not the intervals between them.
+goal_index = [];
+for i = find(eligible_goals)
+    q_candidate = Q_ik(:,i);
+    q_arm_at_s = @(s) (1-s)*q_start(1:3) + s*q_candidate(1:3);
+    q_previous = q_start;
+    rejection_reason = "";
+    for k = 1:n_samples
+        s_k = s_samples(k);
+        q_arm = q_arm_at_s(s_k);
 
-    % Solve orientation IK for this arm configuration.
-    [wrist_solutions, is_singular] = analytical_ik_wrist( ...
-        q_arm, R_d, poe_model, singular_tol);
-    if is_singular
-        error('Wrist singularity at s = %.6f.',s_k);
+        % Solve orientation IK for this arm configuration.
+        [wrist_solutions, is_singular] = analytical_ik_wrist( ...
+            q_arm, R_d, poe_model, singular_tol);
+        if is_singular
+            rejection_reason = sprintf('Wrist singularity at s = %.6f.',s_k);
+            break
+        end
+
+        % Express both solutions near the previous wrist angles. atan2(sin,cos)
+        % wraps each angular difference to [-pi, pi], removing 2*pi jumps.
+        delta = wrist_solutions - q_previous(4:6);
+        wrist_candidates = q_previous(4:6) + atan2(sin(delta),cos(delta));
+        q_candidates = [repmat(q_arm,1,size(wrist_candidates,2)); wrist_candidates];
+
+        % Keep only candidates within all six joint limits and on the same
+        % regular wrist branch as the start configuration.
+        within_limits = all(q_candidates >= q_min & q_candidates <= q_max,1);
+        same_wrist_sign = sign(sin(wrist_candidates(2,:))) == wrist_sign;
+        valid = within_limits & same_wrist_sign;
+        if ~any(valid)
+            rejection_reason = sprintf('No admissible wrist candidate at s = %.6f.',s_k);
+            break
+        end
+        q_candidates = q_candidates(:,valid);
+
+        % Choose the admissible wrist requiring the smallest joint-space step.
+        wrist_distance = vecnorm(q_candidates(4:6,:)-q_previous(4:6),2,1);
+        [~, nearest] = min(wrist_distance);
+        q_current = q_candidates(:,nearest);
+
+        % Both wrist candidates share this arm Jacobian. Its determinant must
+        % keep the initial nonzero sign at every sampled configuration.
+        J_wrist = poe_jacobian(q_current, 0, 5, poe_model);
+        arm_det(k) = det(J_wrist(1:3,1:3));
+        if sign(arm_det(k)) ~= arm_sign
+            rejection_reason = sprintf('Arm determinant changed sign at s = %.6f.',s_k);
+            break
+        end
+
+        joint_margin(k) = min([q_current-q_min; q_max-q_current]);
+        q_planned(:,k) = q_current;
+        q_previous = q_current;
+
+        % Check the full robot Jacobian, including both arm and wrist effects.
+        J = poe_jacobian(q_planned(:,k), 0, 6, poe_model);
+        J_tilde = jacobian_scale * J;
+        sigma_min(k) = min(svd(J_tilde));
+        if sigma_min(k) <= sigma_tol
+            rejection_reason = sprintf('sigma_min = %.3g <= %.3g at s = %.6f.', ...
+                sigma_min(k), sigma_tol, s_k);
+            break
+        end
+
+        % Verify the tool orientation and record its position using FK.
+        [T_k, joint_positions] = poe_fk(q_planned(:,k), poe_model);
+        R_k = T_k(1:3,1:3);
+        R_error = R_d' * R_k;
+        cos_theta = (trace(R_error)-1)/2;
+        theta(k) = acos(min(max(cos_theta,-1),1));  % Clamp numerical roundoff.
+        p_planned(:,k) = T_k(1:3,4);
+
+        % Consistency with the current wrist centre and desired orientation;
+        % this does not prescribe an independent Cartesian position path.
+        p_desired = joint_positions(:,5) + R_d * tool_offset;
+        error_position(k) = norm(p_planned(:,k)-p_desired);
     end
 
-    % Express both solutions near the previous wrist angles. atan2(sin,cos)
-    % wraps each angular difference to [-pi, pi], removing 2*pi jumps.
-    delta = wrist_solutions - q_previous(4:6);
-    wrist_candidates = q_previous(4:6) + atan2(sin(delta),cos(delta));
-    q_candidates = [repmat(q_arm,1,size(wrist_candidates,2)); wrist_candidates];
-
-    % Keep only candidates within all six joint limits and on the same
-    % regular wrist branch as the start configuration.
-    within_limits = all(q_candidates >= q_min & q_candidates <= q_max,1);
-    same_wrist_sign = sign(sin(wrist_candidates(2,:))) == wrist_sign;
-    valid = within_limits & same_wrist_sign;
-    if ~any(valid)
-        error('No wrist candidate preserves the wrist sign and joint limits at s = %.6f.',s_k);
+    if strlength(rejection_reason) > 0
+        candidate_status(i) = "Path rejected: " + rejection_reason;
+        continue
     end
-    q_candidates = q_candidates(:,valid);
-
-    % Choose the admissible wrist requiring the smallest joint-space step.
-    wrist_distance = vecnorm(q_candidates(4:6,:)-q_previous(4:6),2,1);
-    [~, nearest] = min(wrist_distance);
-    q_current = q_candidates(:,nearest);
-
-    % Both wrist candidates share this arm Jacobian. Its determinant must
-    % keep the initial nonzero sign at every sampled configuration.
-    J_wrist = poe_jacobian(q_current, 0, 5, poe_model);
-    arm_det(k) = det(J_wrist(1:3,1:3));
-    if sign(arm_det(k)) ~= arm_sign
-        error('Arm Jacobian determinant lost its initial sign at s = %.6f (det = %.3g, initial det = %.3g).', ...
-            s_k, arm_det(k), arm_det_start);
+    % Check actual joint angles: a 2*pi offset is distinct with bounded joints.
+    goal_error = norm(q_planned(:,end)-q_candidate,inf);
+    if goal_error > goal_tol
+        candidate_status(i) = sprintf('Path misses goal by %.3g rad.',goal_error);
+        continue
     end
-
-    joint_margin(k) = min([q_current-q_min; q_max-q_current]);
-    q_planned(:,k) = q_current;
-    q_previous = q_current;
-
-    % Check the full robot Jacobian, including both arm and wrist effects.
-    J = poe_jacobian(q_planned(:,k), 0, 6, poe_model);
-    J_tilde = jacobian_scale * J;
-    sigma_min(k) = min(svd(J_tilde));
-    if sigma_min(k) <= sigma_tol
-        error('Jacobian singularity margin too small at s = %.6f (sigma_min = %.3g <= %.3g).', ...
-            s_k, sigma_min(k), sigma_tol);
+    candidate_status(i) = "Path passed";
+    % Keep the first success, while still testing all remaining candidates.
+    if isempty(goal_index)
+        goal_index = i;
+        selected_path = struct('q',q_planned,'p',p_planned, ...
+            'joint_margin',joint_margin,'sigma_min',sigma_min,'arm_det',arm_det, ...
+            'theta',theta,'error_position',error_position,'goal_error',goal_error);
     end
-
-    % Verify the tool orientation and record its position using FK.
-    [T_k, joint_positions] = poe_fk(q_planned(:,k), poe_model);
-    R_k = T_k(1:3,1:3);
-    R_error = R_d' * R_k;
-    cos_theta = (trace(R_error)-1)/2;
-    theta(k) = acos(min(max(cos_theta,-1),1));  % Clamp numerical roundoff.
-    p_planned(:,k) = T_k(1:3,4);
-
-    % Consistency with the current wrist centre and desired orientation;
-    % this does not prescribe an independent Cartesian position path.
-    p_desired = joint_positions(:,5) + R_d * tool_offset;
-    error_position(k) = norm(p_planned(:,k)-p_desired);
 end
 
-%% 5. Verify the requested endpoint and report path closure
-% Check actual joint angles: a 2*pi offset is distinct with bounded joints.
-goal_error = norm(q_planned(:,end)-q_goal,inf);
-if goal_error > goal_tol
-    error('Continued path misses q_goal (maximum joint error %.3g rad).',goal_error);
+%% 5. Select a validated path and report path closure
+candidate_report = table((1:size(Q_ik,2)).',candidate_status, ...
+    'VariableNames',{'IK_index','Status'});
+disp(candidate_report);
+if isempty(goal_index)
+    error('No candidate passed straight-arm-path validation. A different arm path may still exist.');
 end
+fprintf('Selected IK solution %d after sampled path validation.\n',goal_index);
+q_goal = Q_ik(:,goal_index);
+q_planned = selected_path.q;
+p_planned = selected_path.p;
+joint_margin = selected_path.joint_margin;
+sigma_min = selected_path.sigma_min;
+arm_det = selected_path.arm_det;
+theta = selected_path.theta;
+error_position = selected_path.error_position;
+goal_error = selected_path.goal_error;
 
 position_closure = norm(p_planned(:,end) - p_planned(:,1))
 joint_change = norm(q_planned(:,end) - q_planned(:,1))
