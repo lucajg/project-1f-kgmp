@@ -1,9 +1,13 @@
+function [selected_path, q_goal, candidate_report] = path_between_to_ik_solutions(q_start)
 % Connect two IK configurations of the same tool pose.
 % Interpolate the arm joints (q1:q3), then continue the wrist joints (q4:q6)
 % while holding the tool orientation fixed. The path parameter s is not time.
+% q_start is a six-element joint vector in radians (row or column).
+% Return the selected trajectory and diagnostics, its goal, and candidate outcomes.
 
-%% 1. Choose the start configuration and numerical settings
-q_start = pi/2 * [1; -1; 1; -1; 1; -1];
+%% 1. Validate the start configuration and choose numerical settings
+validateattributes(q_start, {'numeric'}, {'real','finite','vector','numel',6});
+q_start = q_start(:);
 n_samples = 19999;
 s_min = 0;
 s_max = 1;
@@ -236,3 +240,4 @@ sigma_worst
 s_worst = s_samples(k_worst)
 max_orientation_error_angle = max(theta)
 max_discrepancy_desired_vs_planned_position = max(error_position)
+end
