@@ -7,6 +7,7 @@ function [selected_path, q_goal, candidate_report] = path_between_to_ik_solution
 % Optional named inputs and defaults:
 %   n_samples=19999, singular_tol=1e-6, sigma_tol=1e-3, goal_tol=1e-6,
 %   plot_results=true, verbose=true.
+% If every attempt fails, plot_results shows their valid prefixes before erroring.
 % Example: path_between_to_ik_solutions(q_start,n_samples=5001,plot_results=false)
 
 arguments
@@ -61,22 +62,41 @@ jacobian_scale = [eye(3)/L, zeros(3,3); zeros(3,3), eye(3)];
 % opposite or singular wrist branch. The IK solver already verifies the pose.
 delta = atan2(sin(Q_ik-q_start),cos(Q_ik-q_start));
 same_start = max(abs(delta),[],1) <= goal_tol;
-within_limits = all(isfinite(Q_ik) & Q_ik >= q_min & Q_ik <= q_max,1);
+finite_angles = all(isfinite(Q_ik),1);
+within_limits = finite_angles & all(Q_ik >= q_min & Q_ik <= q_max,1);
 same_wrist_sign = sign(sin(Q_ik(5,:))) == wrist_sign;
 regular_wrist = abs(sin(Q_ik(5,:))) > singular_tol;
 eligible_goals = ~same_start & within_limits & same_wrist_sign & regular_wrist;
-candidate_status = repmat("Endpoint excluded",size(Q_ik,2),1);
+candidate_status = strings(size(Q_ik,2),1);
+candidate_status(~finite_angles) = "Nonfinite joint angles";
 
-% Matching endpoint signs is necessary, but does not validate a path.
-for i = find(eligible_goals)
+% Collect every applicable endpoint reason, even after an earlier check fails.
+% Nonfinite configurations cannot meaningfully be checked by FK/Jacobians.
+for i = find(finite_angles)
+    reasons = strings(0,1);
+    if same_start(i)
+        reasons(end+1) = "Starting posture (modulo 2*pi)";
+    end
+    if ~within_limits(i)
+        reasons(end+1) = "Joint-limit violation";
+    end
+    if ~regular_wrist(i)
+        reasons(end+1) = "Wrist singularity threshold violated";
+    end
+    if sign(sin(Q_ik(5,i))) == -wrist_sign
+        reasons(end+1) = "Opposite wrist sign";
+    end
     J_wrist = poe_jacobian(Q_ik(:,i),0,5,poe_model);
     J = poe_jacobian(Q_ik(:,i),0,6,poe_model);
     if sign(det(J_wrist(1:3,1:3))) ~= arm_sign
+        reasons(end+1) = "Opposite or singular arm sign";
+    end
+    if min(svd(jacobian_scale * J)) <= sigma_tol
+        reasons(end+1) = "Endpoint sigma_min at or below threshold";
+    end
+    if ~isempty(reasons)
         eligible_goals(i) = false;
-        candidate_status(i) = "Opposite or singular arm sign";
-    elseif min(svd(jacobian_scale * J)) <= sigma_tol
-        eligible_goals(i) = false;
-        candidate_status(i) = "Endpoint below sigma_min threshold";
+        candidate_status(i) = strjoin(reasons,"; ");
     end
 end
 
@@ -96,11 +116,15 @@ tool_offset = [dh_model.d(6); 0; 0];  % Wrist-to-tool offset in tool coordinates
 % Reuse the sample buffers; only a complete, validated path can be selected.
 % These checks validate sampled configurations, not the intervals between them.
 goal_index = [];
+failed_attempts = cell(1,size(Q_ik,2));
 for i = find(eligible_goals)
     q_candidate = Q_ik(:,i);
     q_arm_at_s = @(s) (1-s)*q_start(1:3) + s*q_candidate(1:3);
     q_previous = q_start;
     rejection_reason = "";
+    n_valid = 0;
+    rejected_q = zeros(6,0);
+    rejected_sigma = NaN;
     for k = 1:n_samples
         s_k = s_samples(k);
         q_arm = q_arm_at_s(s_k);
@@ -125,7 +149,21 @@ for i = find(eligible_goals)
         same_wrist_sign = sign(sin(wrist_candidates(2,:))) == wrist_sign;
         valid = within_limits & same_wrist_sign;
         if ~any(valid)
-            rejection_reason = sprintf('No admissible wrist candidate at s = %.6f.',s_k);
+            rejected_q = q_candidates; % Keep both unwrapped wrist candidates.
+            wrist_reasons = strings(1,size(q_candidates,2));
+            for branch = 1:size(q_candidates,2)
+                reasons = strings(0,1);
+                if ~within_limits(branch)
+                    outside = find(q_candidates(:,branch) < q_min | q_candidates(:,branch) > q_max);
+                    reasons(end+1) = "joint limits (" + strjoin(compose("q%d",outside),", ") + ")";
+                end
+                if ~same_wrist_sign(branch)
+                    reasons(end+1) = "opposite wrist sign";
+                end
+                wrist_reasons(branch) = sprintf('Wrist candidate %d: %s',branch,strjoin(reasons,", "));
+            end
+            rejection_reason = sprintf('No admissible wrist candidate at s = %.6f; %s', ...
+                s_k,strjoin(wrist_reasons,"; "));
             break
         end
         q_candidates = q_candidates(:,valid);
@@ -139,24 +177,29 @@ for i = find(eligible_goals)
         % keep the initial nonzero sign at every sampled configuration.
         J_wrist = poe_jacobian(q_current, 0, 5, poe_model);
         arm_det(k) = det(J_wrist(1:3,1:3));
+        reasons = strings(0,1);
         if sign(arm_det(k)) ~= arm_sign
-            rejection_reason = sprintf('Arm determinant changed sign at s = %.6f.',s_k);
+            reasons(end+1) = sprintf('Arm determinant changed sign at s = %.6f.',s_k);
+        end
+
+        % Check both Jacobian conditions before rejecting this configuration.
+        J = poe_jacobian(q_current, 0, 6, poe_model);
+        J_tilde = jacobian_scale * J;
+        sigma_min(k) = min(svd(J_tilde));
+        if sigma_min(k) <= sigma_tol
+            reasons(end+1) = sprintf('sigma_min = %.3g <= %.3g at s = %.6f.', ...
+                sigma_min(k), sigma_tol, s_k);
+        end
+        if ~isempty(reasons)
+            rejected_q = q_current;
+            rejected_sigma = sigma_min(k);
+            rejection_reason = strjoin(reasons,"; ");
             break
         end
 
         joint_margin(k) = min([q_current-q_min; q_max-q_current]);
         q_planned(:,k) = q_current;
         q_previous = q_current;
-
-        % Check the full robot Jacobian, including both arm and wrist effects.
-        J = poe_jacobian(q_planned(:,k), 0, 6, poe_model);
-        J_tilde = jacobian_scale * J;
-        sigma_min(k) = min(svd(J_tilde));
-        if sigma_min(k) <= sigma_tol
-            rejection_reason = sprintf('sigma_min = %.3g <= %.3g at s = %.6f.', ...
-                sigma_min(k), sigma_tol, s_k);
-            break
-        end
 
         % Verify the tool orientation and record its position using FK.
         [T_k, joint_positions] = poe_fk(q_planned(:,k), poe_model);
@@ -170,16 +213,26 @@ for i = find(eligible_goals)
         % this does not prescribe an independent Cartesian position path.
         p_desired = joint_positions(:,5) + R_d * tool_offset;
         error_position(k) = norm(p_planned(:,k)-p_desired);
+        n_valid = k; % Advance only after this sample has completed every check.
     end
 
+    if strlength(rejection_reason) == 0
+        % Check actual joint angles: a 2*pi offset is distinct with bounded joints.
+        goal_error = norm(q_planned(:,end)-q_candidate,inf);
+        if goal_error > goal_tol
+            rejection_reason = sprintf('Path misses goal by %.3g rad.',goal_error);
+        end
+    end
     if strlength(rejection_reason) > 0
         candidate_status(i) = "Path rejected: " + rejection_reason;
-        continue
-    end
-    % Check actual joint angles: a 2*pi offset is distinct with bounded joints.
-    goal_error = norm(q_planned(:,end)-q_candidate,inf);
-    if goal_error > goal_tol
-        candidate_status(i) = sprintf('Path misses goal by %.3g rad.',goal_error);
+        if options.plot_results
+            % Never retain unfilled columns or samples left over from another goal.
+            failed_attempts{i} = struct('s',s_samples(1:n_valid), ...
+                'q',q_planned(:,1:n_valid),'p',p_planned(:,1:n_valid), ...
+                'sigma_min',sigma_min(1:n_valid),'reason',rejection_reason, ...
+                's_failed',s_k,'arm_failed',q_arm, ...
+                'rejected_q',rejected_q,'rejected_sigma',rejected_sigma);
+        end
         continue
     end
     candidate_status(i) = "Path passed";
@@ -199,6 +252,13 @@ if options.verbose
     disp(candidate_report);
 end
 if isempty(goal_index)
+    if options.plot_results
+        for i = find(~cellfun(@isempty,failed_attempts))
+            plot_failed_path(failed_attempts{i},i,Q_ik,poe_model, ...
+                q_min,q_max,wrist_sign,sigma_tol);
+        end
+        drawnow;
+    end
     error('No candidate passed straight-arm-path validation. A different arm path may still exist.');
 end
 if options.verbose
@@ -243,7 +303,7 @@ if options.plot_results
     plot(s_samples, sigma_min);
     yline(sigma_tol,'r--','Threshold');
     xlabel('Path parameter s');
-    ylabel('\sigma_{min}(\tilde{J})');
+    ylabel('$\sigma_{\min}(\tilde{J})$','Interpreter','latex');
     grid on;
 
     figure;

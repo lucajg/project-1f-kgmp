@@ -1,7 +1,17 @@
-function fig = plot_ik_path(Q_ik, q_path, poe_model)
+function [fig, ax] = plot_ik_path(Q_ik, q_path, poe_model, path_complete)
 %PLOT_IK_PATH Show target-pose IK solutions and a path on the arm singularity map.
 % Columns of Q_ik are numbered as returned by analytical_ik_6r.
 % Labels + and - denote sign(sin(q5)); 0 denotes a singular wrist.
+% Set path_complete=false for a failed attempt; q_path may then be empty.
+if nargin < 4
+    path_complete = true;
+end
+plot_title = 'IK solutions and connecting path';
+path_label = 'Selected path';
+if ~path_complete
+    plot_title = 'Failed attempt - validated prefix only';
+    path_label = 'Valid prefix (failed attempt)';
+end
 
 map = singularity_map_data(poe_model,241);
 positive_color = [0 .45 .70];
@@ -11,7 +21,7 @@ arm_positive_color = [1 .94 .80];
 wrist_signs = sign(sin(Q_ik(5,:)));
 wrist_signs(abs(sin(Q_ik(5,:))) <= 1e-10) = 0;
 
-fig = figure('Name','IK solutions and connecting path','Color','w', ...
+fig = figure('Name',plot_title,'Color','w', ...
     'Position',[100 100 900 680]);
 ax = axes(fig);
 hold(ax,'on');
@@ -32,7 +42,7 @@ patch(ax,nan,nan,arm_positive_color,'EdgeColor','none', ...
 plot(ax,map.arm(1,:),map.arm(2,:),'k','LineWidth',1.2, ...
     'DisplayName','Arm singularities');
 plot(ax,q_path(2,:),q_path(3,:),'Color',[.2 .6 .3],'LineWidth',2, ...
-    'DisplayName','Selected path');
+    'DisplayName',path_label);
 
 % Wrist flips coincide in this projection: an outer circle and an inner
 % square keep both signs visible without moving their actual positions.
@@ -78,10 +88,10 @@ while ~isempty(remaining)
             suffix = '0';
         end
         labels{j} = sprintf('%d%s',candidate,suffix);
-        if norm(Q_ik(:,candidate)-q_path(:,1),inf) < 1e-6
+        if ~isempty(q_path) && norm(Q_ik(:,candidate)-q_path(:,1),inf) < 1e-6
             labels{j} = [labels{j}, ' (start)'];
         end
-        if norm(Q_ik(:,candidate)-q_path(:,end),inf) < 1e-6
+        if path_complete && ~isempty(q_path) && norm(Q_ik(:,candidate)-q_path(:,end),inf) < 1e-6
             labels{j} = [labels{j}, ' (goal)'];
         end
     end
@@ -97,7 +107,7 @@ end
 
 xlabel(ax,'q_2 (rad)');
 ylabel(ax,'q_3 (rad)');
-title(ax,{'IK solutions and connecting path', ...
+title(ax,{plot_title, ...
     'Labels: solution ID and wrist sign = sign(sin(q_5))'});
 grid(ax,'on');
 set(ax,'Layer','top');
