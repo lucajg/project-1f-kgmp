@@ -142,50 +142,15 @@ if options.verbose
     fprintf('Selected IK solution %d after sampled path validation.\n',goal_index);
 end
 q_goal = Q_ik(:,goal_index);
-q_planned = selected_path.q;
-p_planned = selected_path.p;
 
 if options.verbose
-    position_closure = norm(p_planned(:,end) - p_planned(:,1))
-    joint_change = norm(q_planned(:,end) - q_planned(:,1))
+    position_closure = norm(selected_path.p(:,end) - selected_path.p(:,1))
+    joint_change = norm(selected_path.q(:,end) - selected_path.q(:,1))
 end
 
 %% 5. Plot the joint path, tool path, and singularity margin
 if options.plot_results
-    figure;
-    subplot(1,2,1);
-    plot(selected_path.s, q_planned.');
-    xlabel('Path parameter s');
-    ylabel('Joint angle (rad)');
-    legend('q_1','q_2','q_3','q_4','q_5','q_6');
-    title('Joint space');
-    grid on;
-
-    subplot(1,2,2);
-    plot3(p_planned(1,:), p_planned(2,:), p_planned(3,:));
-    xlabel('x (m)');
-    ylabel('y (m)');
-    zlabel('z (m)');
-    title('Task space');
-    axis equal;
-    grid on;
-
-    figure;
-    plot(selected_path.s, selected_path.sigma_min);
-    yline(sigma_tol,'r--','Threshold');
-    xlabel('Path parameter s');
-    ylabel('$\sigma_{\min}(\tilde{J})$','Interpreter','latex');
-    grid on;
-
-    figure;
-    plot(selected_path.s, selected_path.joint_margin);
-    yline(0,'r--');
-    xlabel('Path parameter s');
-    ylabel('Minimum joint-limit clearance (rad)');
-    grid on;
-
-    % Project all target-pose IK solutions and the selected path onto (q2,q3).
-    plot_ik_path(Q_ik, q_planned, poe_model);
+    plot_selected_path(selected_path,Q_ik,poe_model,sigma_tol);
 end
 
 %% 6. Report the worst sampled singularity margin and pose errors
