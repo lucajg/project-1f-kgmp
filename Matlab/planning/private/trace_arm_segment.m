@@ -4,6 +4,7 @@ function attempt = trace_arm_segment(q_start,q_goal,R_d,poe_model,settings)
 % tool offset, and the singularity/goal tolerances from the caller.
 % attempt.path contains only completed, admissible samples (possibly none).
 % An empty attempt.reason indicates success; failure details stay outside path.
+% reason_codes identifies failed conditions without parsing the display message.
 % Validation applies to sampled configurations, not the intervals between them.
 
 s_samples = settings.s_samples;
@@ -23,10 +24,13 @@ error_position = zeros(1,n_samples);
 wrist_branch = 1 + (sin(q_start(5)) < 0);
 q_previous = q_start;
 rejection_reason = "";
+rejection_codes = strings(0,1);
 n_valid = 0;
 goal_error = NaN;
 rejected_q = zeros(6,0);
 rejected_sigma = NaN;
+rejected_arm_det = NaN;
+violated_joints = zeros(0,1);
 
 for k = 1:n_samples
     s_k = s_samples(k);
@@ -35,6 +39,7 @@ for k = 1:n_samples
         q_arm, R_d, poe_model, settings.singular_tol);
     if is_singular
         rejection_reason = sprintf('Wrist singularity at s = %.6f.',s_k);
+        rejection_codes = "wrist_singularity";
         break
     end
 
@@ -46,6 +51,8 @@ for k = 1:n_samples
     outside = find(q_current < q_min | q_current > q_max);
     if ~isempty(outside)
         rejected_q = q_current;
+        rejection_codes = "joint_limits";
+        violated_joints = outside;
         rejection_reason = sprintf('Joint limits violated at s = %.6f (%s).', ...
             s_k,strjoin(compose("q%d",outside),", "));
         break
@@ -58,16 +65,19 @@ for k = 1:n_samples
     reasons = strings(0,1);
     if sign(arm_det(k)) ~= settings.arm_sign
         reasons(end+1) = sprintf('Arm determinant changed sign at s = %.6f.',s_k);
+        rejection_codes(end+1,1) = "arm_sign";
     end
     J = point_jacobian(joint_positions,joint_axes,joint_positions(:,6),eye(3));
     sigma_min(k) = min(svd(settings.jacobian_scale * J));
     if sigma_min(k) <= settings.sigma_tol
         reasons(end+1) = sprintf('sigma_min = %.3g <= %.3g at s = %.6f.', ...
             sigma_min(k), settings.sigma_tol, s_k);
+        rejection_codes(end+1,1) = "jacobian_margin";
     end
     if ~isempty(reasons)
         rejected_q = q_current;
         rejected_sigma = sigma_min(k);
+        rejected_arm_det = arm_det(k);
         rejection_reason = strjoin(reasons,"; ");
         break
     end
@@ -93,6 +103,7 @@ if strlength(rejection_reason) == 0
     goal_error = norm(q_planned(:,end)-q_goal,inf);
     if goal_error > settings.goal_tol
         rejection_reason = sprintf('Path misses goal by %.3g rad.',goal_error);
+        rejection_codes = "goal_mismatch";
     end
 end
 
@@ -102,9 +113,10 @@ path = struct('s',s_samples(valid),'q',q_planned(:,valid),'p',p_planned(:,valid)
     'joint_margin',joint_margin(valid),'sigma_min',sigma_min(valid), ...
     'arm_det',arm_det(valid),'theta',theta(valid), ...
     'error_position',error_position(valid),'goal_error',goal_error);
-attempt = struct('path',path,'reason',rejection_reason, ...
+attempt = struct('path',path,'reason',rejection_reason,'reason_codes',rejection_codes, ...
     's_failed',NaN,'arm_failed',zeros(3,0), ...
-    'rejected_q',rejected_q,'rejected_sigma',rejected_sigma);
+    'rejected_q',rejected_q,'rejected_sigma',rejected_sigma, ...
+    'rejected_arm_det',rejected_arm_det,'violated_joints',violated_joints);
 if strlength(rejection_reason) > 0
     attempt.s_failed = s_k;
     attempt.arm_failed = q_arm;

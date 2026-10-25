@@ -39,7 +39,7 @@ Individual checks remain available after setup:
 | [check_dh_poe](fk/README.md#checks) | DH, PoE, and URDF poses and joint axes. |
 | [check_jacobians](jacobian/README.md#checks) | Numerical comparisons, finite differences, and optionally symbolic equality. |
 | [check_analytical_ik](ik/README.md#checks) | Arm and wrist branches, round trips, singularities, and invalid targets. |
-| [check_path_planning](planning/check_path_planning.m) | Start joint limits, wrist/Jacobian thresholds, a near-singular arm, and a regular path with row/column inputs. |
+| [check_path_planning](planning/README.md#checks) | Start validation, regular paths, structured failure reports, and console output. |
 | [check_singularity_map](singularity/README.md#checks) | Branch tracking, workspace curves, and UI callbacks. |
 
 `check_jacobians` itself retains its existing default of including symbolic checks; call `check_jacobians(false)` for numerical checks alone. The [joint-axis viewer](visualization/README.md#checks) has a separate manual UI check.

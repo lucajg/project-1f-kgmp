@@ -6,10 +6,14 @@ function [selected_path, q_goal, candidate_report] = path_between_to_ik_solution
 % Its joint limits and wrist/Jacobian margins are checked before goal enumeration.
 % Return the selected trajectory and diagnostics, its goal, and candidate outcomes.
 % selected_path.s contains the path parameter for each column of selected_path.q.
+% If no path passes, selected_path and q_goal are []; candidate_report is returned.
+% The report includes Outcome, ReasonCodes, Goal (one row per candidate), Attempt
+% (a cell containing the trace result or []), and Selected, besides IK_index/Status.
+% Attempt details are available even with plotting disabled. Invalid starts error.
 % Optional named inputs and defaults:
 %   n_samples=10000, singular_tol=1e-6, sigma_tol=1e-3, goal_tol=1e-6,
 %   plot_results=true, verbose=true.
-% If every attempt fails, plot_results shows their valid prefixes before erroring.
+% If every attempt fails, plot_results shows their valid prefixes before returning.
 % Example: path_between_to_ik_solutions(q_start,n_samples=5001,plot_results=false)
 
 arguments
@@ -81,20 +85,26 @@ settings = struct('s_samples',linspace(0,1,options.n_samples), ...
     'q_min',q_min,'q_max',q_max,'arm_sign',arm_sign,'wrist_sign',wrist_sign, ...
     'jacobian_scale',jacobian_scale,'tool_offset',[dh_model.d(6); 0; 0], ...
     'singular_tol',singular_tol,'sigma_tol',sigma_tol,'goal_tol',goal_tol);
-[eligible_goals,candidate_status] = screen_ik_goals(Q_ik,q_start,poe_model,settings);
+[eligible_goals,candidate_status,candidate_codes] = screen_ik_goals( ...
+    Q_ik,q_start,poe_model,settings);
 
 %% 3. Trace a separate path attempt for every eligible goal
+selected_path = [];
+q_goal = [];
 goal_index = [];
-failed_attempts = cell(1,size(Q_ik,2));
+n_goals = size(Q_ik,2);
+candidate_outcome = repmat("endpoint_rejected",n_goals,1);
+candidate_attempts = cell(n_goals,1);
 for i = find(eligible_goals)
     attempt = trace_arm_segment(q_start,Q_ik(:,i),R_d,poe_model,settings);
+    candidate_attempts{i} = attempt;
+    candidate_codes{i} = attempt.reason_codes;
     if strlength(attempt.reason) > 0
+        candidate_outcome(i) = "path_rejected";
         candidate_status(i) = "Path rejected: " + attempt.reason;
-        if options.plot_results
-            failed_attempts{i} = attempt;
-        end
         continue
     end
+    candidate_outcome(i) = "passed";
     candidate_status(i) = "Path passed";
     % Keep the first success, while still testing all remaining candidates.
     if isempty(goal_index)
@@ -103,43 +113,29 @@ for i = find(eligible_goals)
     end
 end
 
-%% 4. Select a validated path and report path closure
-candidate_report = table((1:size(Q_ik,2)).',candidate_status, ...
-    'VariableNames',{'IK_index','Status'});
-if options.verbose
-    disp(candidate_report);
+%% 4. Return all outcomes, including failed attempts independently of plotting
+selected = false(n_goals,1);
+if ~isempty(goal_index)
+    q_goal = Q_ik(:,goal_index);
+    selected(goal_index) = true;
 end
-if isempty(goal_index)
-    if options.plot_results
-        for i = find(~cellfun(@isempty,failed_attempts))
-            plot_failed_path(failed_attempts{i},i,Q_ik,poe_model, ...
+candidate_report = table((1:n_goals).',candidate_status,candidate_outcome, ...
+    candidate_codes,Q_ik.',candidate_attempts,selected, ...
+    'VariableNames',{'IK_index','Status','Outcome','ReasonCodes','Goal','Attempt','Selected'});
+
+%% 5. Present the result
+if options.verbose
+    print_planning_summary(selected_path,candidate_report);
+end
+if options.plot_results
+    if isempty(selected_path)
+        for i = find(candidate_outcome == "path_rejected").'
+            plot_failed_path(candidate_attempts{i},i,Q_ik,poe_model, ...
                 q_min,q_max,sigma_tol);
         end
         drawnow;
+    else
+        plot_selected_path(selected_path,Q_ik,poe_model,sigma_tol);
     end
-    error('No candidate passed straight-arm-path validation. A different arm path may still exist.');
-end
-if options.verbose
-    fprintf('Selected IK solution %d after sampled path validation.\n',goal_index);
-end
-q_goal = Q_ik(:,goal_index);
-
-if options.verbose
-    position_closure = norm(selected_path.p(:,end) - selected_path.p(:,1))
-    joint_change = norm(selected_path.q(:,end) - selected_path.q(:,1))
-end
-
-%% 5. Plot the joint path, tool path, and singularity margin
-if options.plot_results
-    plot_selected_path(selected_path,Q_ik,poe_model,sigma_tol);
-end
-
-%% 6. Report the worst sampled singularity margin and pose errors
-if options.verbose
-    [sigma_worst, k_worst] = min(selected_path.sigma_min);
-    sigma_worst
-    s_worst = selected_path.s(k_worst)
-    max_orientation_error_angle = max(selected_path.theta)
-    max_discrepancy_desired_vs_planned_position = max(selected_path.error_position)
 end
 end
