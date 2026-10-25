@@ -51,14 +51,15 @@ for k = 1:n_samples
         break
     end
 
-    % Preserve the initial arm sign and check the full Jacobian margin.
-    J_wrist = poe_jacobian(q_current, 0, 5, poe_model);
+    % Reuse one FK evaluation for both base-frame Jacobians and pose diagnostics.
+    [T_k, joint_positions, joint_axes] = poe_fk(q_current, poe_model);
+    J_wrist = point_jacobian(joint_positions,joint_axes,joint_positions(:,5),eye(3));
     arm_det(k) = det(J_wrist(1:3,1:3));
     reasons = strings(0,1);
     if sign(arm_det(k)) ~= settings.arm_sign
         reasons(end+1) = sprintf('Arm determinant changed sign at s = %.6f.',s_k);
     end
-    J = poe_jacobian(q_current, 0, 6, poe_model);
+    J = point_jacobian(joint_positions,joint_axes,joint_positions(:,6),eye(3));
     sigma_min(k) = min(svd(settings.jacobian_scale * J));
     if sigma_min(k) <= settings.sigma_tol
         reasons(end+1) = sprintf('sigma_min = %.3g <= %.3g at s = %.6f.', ...
@@ -76,7 +77,6 @@ for k = 1:n_samples
     q_previous = q_current;
 
     % Record pose diagnostics; these residuals are not rejection criteria.
-    [T_k, joint_positions] = poe_fk(q_current, poe_model);
     R_error = R_d' * T_k(1:3,1:3);
     cos_theta = (trace(R_error)-1)/2;
     theta(k) = acos(min(max(cos_theta,-1),1));

@@ -2,7 +2,7 @@
 
 [Project overview and topic documentation](../README.md)
 
-The code is grouped by responsibility. Each topic folder contains its implementation, relevant checks, and a README. Shared geometry is in `models/`; `shared/` contains the DH transform used across topics. Topic-specific helpers live in `private/` subfolders.
+The code is grouped by responsibility. Each topic folder contains its implementation, relevant checks, and a README. Shared geometry is in `models/`; `shared/` contains transform and Jacobian calculations used across topics. Topic-specific helpers live in `private/` subfolders.
 
 ## Entry points
 

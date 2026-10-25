@@ -14,7 +14,7 @@ Compute DH and PoE geometric Jacobians numerically or symbolically, and express 
 | [poe_jacobian_symbolic.m](poe_jacobian_symbolic.m) | Entry script for symbolic PoE results. |
 | [dh_parameter_form.m](dh_parameter_form.m) | Rewrite dimension symbols using nonzero DH parameters. |
 | [check_jacobians.m](check_jacobians.m) | Compare formulations, finite differences, and optional symbolic results. |
-| [private/point_jacobian.m](private/point_jacobian.m) | Shared cross-product calculation for this folder. |
+| [point_jacobian.m](../shared/point_jacobian.m) | Shared cross-product calculation from precomputed joint origins and axes. |
 
 ## Example
 
@@ -35,7 +35,7 @@ check_jacobians(false);
 
 ## Dependencies
 
-[Robot models](../models/README.md) and [forward kinematics](../fk/README.md). Numerical evaluation needs no additional toolbox. Symbolic models, entry scripts, `dh_parameter_form`, and the optional symbolic checks require Symbolic Math Toolbox.
+[Robot models](../models/README.md), [forward kinematics](../fk/README.md), and [shared kinematics helpers](../shared/README.md). Numerical evaluation needs no additional toolbox. Symbolic models, entry scripts, `dh_parameter_form`, and the optional symbolic checks require Symbolic Math Toolbox.
 
 ## Inputs, outputs, and implementation
 
