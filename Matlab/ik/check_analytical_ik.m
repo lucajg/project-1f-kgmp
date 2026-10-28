@@ -13,11 +13,26 @@ for geometry = {g, g_other}
     pm = poe_data(geometry{1});
     dm = dh_data(geometry{1});
     samples = [zeros(6,1), -pi+2*pi*rand(stream,6,400)];
-    % Exercise the omitted half-angle point and both exact/near wrist singularities.
+    % Exercise the base-angle boundary and exact/near wrist singularities.
     for q1 = [0.4, pi, pi-1e-9]
         for q5 = [0, pi, -pi, 1e-6, -1e-6, 1e-8, -1e-8, ...
                 1e-9, -1e-9, 1e-11, pi-1e-6, pi-1e-8, pi-1e-9]
             samples(:,end+1) = [q1; -0.4; 0.8; 0.7; q5; -1.1]; %#ok<AGROW>
+        end
+    end
+    % The new half-angle chart omits q3 = pi; also test its nearby large roots.
+    for q3 = [pi, -pi, pi-1e-5, -pi+1e-5, pi-1e-9, -pi+1e-9, ...
+            pi/2, -pi/2, pi/2-1e-9, pi/2+1e-9]
+        for q5 = [0, pi, 0.6, -0.6, 1e-9]
+            samples(:,end+1) = [0.4; -0.4; q3; 0.7; q5; -1.1]; %#ok<AGROW>
+        end
+    end
+    % A rank-deficient arm produces repeated (or almost repeated) q3 roots.
+    for q3 = [0, pi, pi-1e-5, pi-1e-7, pi-1e-9]
+        q2_fold = fzero(@(q2) arm_determinant([.4;q2;q3;0;0;0],pm),0);
+        for offset = [0, -1e-5, 1e-5]
+            q = [.4;q2_fold+offset;q3;.7;.6;-1.1];
+            samples(:,end+1) = atan2(sin(q),cos(q)); %#ok<AGROW>
         end
     end
     for k = 1:size(samples,2)
@@ -42,6 +57,7 @@ for geometry = {g, g_other}
         target(1:3,4) = [dm.d(6); 0; dm.d(1)+h];
         arm = analytical_ik_3r(target,pm,dm);
         assert(size(arm,2)==1,'Expected one representative of the arm family.');
+        assert(arm(1)==0,'The base-axis family should use q1 = 0.');
         max_error = max(max_error,check_target(target,pm,dm,[]));
         count = count+1;
     end
@@ -53,6 +69,11 @@ end
 
 urdf_data;
 pm = poe_data(); dm = dh_data();
+% The singularity viewer allocates exactly eight branch slots.
+eight_branch_source = [-45;162;84;36;-124;-124]*pi/180;
+eight_branch_target = dh_fk(eight_branch_source,dm);
+assert(size(analytical_ik_3r(eight_branch_target,pm,dm),2)==4);
+assert(size(analytical_ik_6r(eight_branch_target,pm,dm),2)==8);
 for k = 1:30
     source = -pi+2*pi*rand(stream,6,1);
     target = urdf_fk(source,urdf_model);
@@ -77,6 +98,19 @@ for solver = {@analytical_ik_3r, @analytical_ik_6r}
         assert(strcmp(err.identifier,'analytical_ik_3r:InvalidPose'));
     end
 end
+% The invariant recovery divides by a1 and by F1^2+d3^2.
+for field = {'l2','h4','l4'}
+    degenerate = g;
+    degenerate.(field{1}) = 0;
+    if strcmp(field{1},'l4'), degenerate.l5 = 0; end
+    bad_pm = poe_data(degenerate); bad_dm = dh_data(degenerate);
+    try
+        analytical_ik_3r(eye(4),bad_pm,bad_dm);
+        error('check_analytical_ik:MissingError','Accepted degenerate geometry.');
+    catch err
+        assert(strcmp(err.identifier,'analytical_ik_3r:DegenerateGeometry'));
+    end
+end
 fprintf('Analytical IK passed %d reachable poses, unreachable and invalid targets.\n',count);
 fprintf('Max wrist position: %.3e m; tool position: %.3e m; rotation: %.3e (Frobenius).\n',max_error);
 end
@@ -86,12 +120,15 @@ arm = analytical_ik_3r(target,pm,dm);
 Q = analytical_ik_6r(target,pm,dm);
 assert(~isempty(arm) && ~isempty(Q),'No solution for a reachable target.');
 assert(size(arm,1)==3 && size(Q,1)==6);
+assert(size(arm,2)<=4 && size(Q,2)<=8,'Too many isolated IK branches.');
 assert(isreal(Q) && all(isfinite(Q(:))) && all(abs(Q(:))<=pi+1e-12));
 errors = zeros(1,3);
 p_w = target(1:3,4)-dm.d(6)*target(1:3,1);
 for i = 1:size(arm,2)
     [~,p] = dh_fk([arm(:,i);zeros(3,1)],dm);
     errors(1) = max(errors(1),norm(p(:,5)-p_w));
+    difference = atan2(sin(arm(:,1:i-1)-arm(:,i)),cos(arm(:,1:i-1)-arm(:,i)));
+    assert(all(vecnorm(difference,2,1)>1e-7),'Duplicate arm solution.');
 end
 for i = 1:size(Q,2)
     T = dh_fk(Q(:,i),dm);
@@ -135,4 +172,10 @@ if abs(sin(source(5)))>1e-6
 elseif abs(sin(source(5)))<1e-14
     assert(any(abs(Q(4,same_arm))<1e-10),'A singular wrist should use q4 = 0.');
 end
+end
+
+function value = arm_determinant(q,pm)
+% Independent geometric position Jacobian, without requiring a Jacobian helper.
+[~,p,w] = poe_fk(q,pm);
+value = det(cross(w(:,1:3),p(:,5)-p(:,1:3),1));
 end

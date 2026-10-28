@@ -19,21 +19,25 @@ validateattributes(singular_tol,{'numeric'},{'scalar','real','finite','nonnegati
 R_arm = F0(1:3,1:3,end)*poe_model.M(1:3,1:3);
 R = R_arm.'*R_d;
 
-% R = Rx(q4)*Rz(q5)*Rx(q6), so R11 = cos(q5) and rho = abs(sin(q5)).
-rho = hypot(R(2,1),R(3,1));
-is_singular = rho <= singular_tol;
-if rho > singular_tol
+% Eq. (wrist-solutions) in derivation.tex: use the same sign in all angles.
+% R = Rx(q4)*Rz(q5)*Rx(q6), so R11 = cos(q5) and eta = abs(sin(q5)).
+eta = hypot(R(2,1),R(3,1));
+is_singular = eta <= singular_tol;
+if ~is_singular
     wrist = zeros(3,2);
     for branch = 1:2
-        s5 = (-1)^(branch-1)*rho;
-        q5 = atan2(s5,R(1,1));
-        % Dividing by the signed sine preserves both wrist branches.
-        q4 = atan2(R(3,1)/s5,R(2,1)/s5);
-        % Remove q4: Rz(q5)*Rx(q6) has third row [0, sin(q6), cos(q6)].
-        % This avoids dividing by a small sin(q5) when extracting q6.
-        R4 = [1,0,0; 0,cos(q4),-sin(q4); 0,sin(q4),cos(q4)];
-        remaining = R4.'*R;
-        q6 = atan2(remaining(3,2),remaining(3,3));
+        sign_s5 = (-1)^(branch-1);  % Positive branch first for path tracking.
+        q5 = atan2(sign_s5*eta,R(1,1));
+        q4 = atan2(sign_s5*R(3,1),sign_s5*R(2,1));
+        q6 = atan2(sign_s5*R(1,3),-sign_s5*R(1,2));
+        if eta < 1e-6
+            % Equivalent extraction near singularity: the first-row entries
+            % above are tiny, so their independent roundoff can corrupt the
+            % coupled q4 +/- q6. Rx(-q4)*R has unit-length row [0,s6,c6].
+            s4 = sin(q4); c4 = cos(q4);
+            q6 = atan2(-s4*R(2,2)+c4*R(3,2), ...
+                       -s4*R(2,3)+c4*R(3,3));
+        end
         wrist(:,branch) = [q4; q5; q6];
     end
 elseif R(1,1) >= 0
@@ -41,8 +45,8 @@ elseif R(1,1) >= 0
     sigma = atan2(R(3,2),R(2,2));
     wrist = [0; 0; sigma];
 else
-    % q5 = pi: R*Rz(pi)' = Rx(delta), where delta = q4 - q6.
-    delta = atan2(-R(3,2),-R(2,2));
-    wrist = [0; pi; -delta];
+    % q5 = pi: only q6 - q4 is determined.
+    difference = atan2(R(3,2),-R(2,2));
+    wrist = [0; pi; difference];
 end
 end
