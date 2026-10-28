@@ -1,8 +1,8 @@
 function fig = singularity_map
-%SINGULARITY_MAP Explore CuRo6R pose IK and arm singularities.
-% Drag the pose sliders or type values: metres and degrees, with
-% R = Rz(yaw)*Ry(pitch)*Rx(roll). rho = hypot(x,y), in metres.
-% Drag the workspace star to change rho and z at fixed azimuth/orientation.
+%SINGULARITY_MAP Explore CuRo6R wrist-center targets and full pose IK.
+% Position controls place the wrist center in metres; tool roll/pitch/yaw
+% are in degrees, with R = Rz(yaw)*Ry(pitch)*Rx(roll).
+% Drag the star to change rho_w and z_w at fixed wrist azimuth/tool orientation.
 % Colors/numbers follow nearest full joint solutions modulo 2*pi.
 % At singularities branches can merge; continuous families have one representative.
 
@@ -20,11 +20,11 @@ dragBounds = zeros(2,2);
 previousPointer = 'arrow';
 T0 = poe_fk([-45;162;84;36;-124;-124]*pi/180,poe);  % Eight regular solutions.
 R0 = T0(1:3,1:3);
-initial = [T0(1:3,4); atan2(R0(3,2),R0(3,3))*180/pi; ...
+initial = [T0(1:3,4)-dh.d(6)*R0(:,1); atan2(R0(3,2),R0(3,3))*180/pi; ...
     atan2(-R0(3,1),hypot(R0(1,1),R0(2,1)))*180/pi; ...
     atan2(R0(2,1),R0(1,1))*180/pi];
-pose = initial;
-reach = sum(vecnorm(diff([zeros(3,1),poe.r],1,2)));
+pose = initial;  % [wrist x; wrist y; wrist z; tool roll; tool pitch; tool yaw].
+reach = sum(vecnorm(diff([zeros(3,1),poe.r(:,1:5)],1,2)));
 limits = [-reach reach; -reach reach; -reach reach; -180 180; -90 90; -180 180];
 
 visibility = get(groot,'defaultFigureVisible');
@@ -51,8 +51,8 @@ try
     labels = {'-\pi','-\pi/2','0','\pi/2','\pi'};
     set(armAxes,'XTick',ticks,'YTick',ticks,'XTickLabel',labels,'YTickLabel',labels);
     xlabel(armAxes,'q_2 (rad)'); ylabel(armAxes,'q_3 (rad)');
-    title(armAxes,{'Arm singularities: q_5 = \pi/2', ...
-        'Blue: det(J) < 0     Pink: det(J) > 0'});
+    title(armAxes,{'Arm factor: det(J) = D(q_2,q_3) sin(q_5)', ...
+        'Blue: D < 0     Pink: D > 0'});
     marks = gobjects(1,8); numbers = gobjects(1,8);
     for marker = 1:8
         marks(marker) = plot(armAxes,nan,nan,'o','Color',colors(marker,:), ...
@@ -64,18 +64,19 @@ try
     workspaceAxes = axes(fig,'Position',[.57 .43 .38 .44],'Tag','workspace-map');
     disableDefaultInteractivity(workspaceAxes);  % Let the star handle mouse dragging.
     hold(workspaceAxes,'on'); grid(workspaceAxes,'on'); box(workspaceAxes,'on');
-    boundary = plot(workspaceAxes,nan,nan,'k','LineWidth',1.3);
+    boundary = plot(workspaceAxes,map.wrist(1,:),map.wrist(2,:),'k', ...
+        'LineWidth',1.3,'Tag','arm-boundary');
     target = plot(workspaceAxes,nan,nan,'p','MarkerSize',13*fontScale, ...
         'MarkerEdgeColor','k','MarkerFaceColor',[.95 .75 .15], ...
-        'Tag','tool-target','ButtonDownFcn',@startDrag);
+        'Tag','wrist-target','ButtonDownFcn',@startDrag);
     xlim(workspaceAxes,[0 reach]); ylim(workspaceAxes,[-reach reach]);
-    xlabel(workspaceAxes,'\rho = \surd(x^2 + y^2) (m)'); ylabel(workspaceAxes,'z (m)');
+    xlabel(workspaceAxes,'\rho_w = \surd(x_w^2 + y_w^2) (m)'); ylabel(workspaceAxes,'z_w (m)');
     workspaceTitle = title(workspaceAxes,'');
-    key = legend(workspaceAxes,[boundary,target],{'Arm singularities','Tool target (drag)'}, ...
+    key = legend(workspaceAxes,[boundary,target],{'Arm singularities','Wrist center (drag)'}, ...
         'Orientation','horizontal');
     set(key,'Units','normalized','Position',[.58 .335 .37 .035]);
 
-    names = {'x (m)','y (m)','z (m)','roll (deg)','pitch (deg)','yaw (deg)'};
+    names = {'wrist x (m)','wrist y (m)','wrist z (m)','roll (deg)','pitch (deg)','yaw (deg)'};
     sliders = gobjects(6,1); fields = gobjects(6,1); listeners = cell(6,1);
     for i = 1:6
         y = .295-(i-1)*.043;
@@ -95,7 +96,7 @@ try
     setappdata(fig,'sliderListeners',listeners);
     uicontrol(fig,'Style','pushbutton','String','Reset pose','Position',[.025 .025 .095 .035], ...
         'Tag','reset-pose','Callback',@(~,~) resetPose());
-    uicontrol(fig,'Style','text','String','R = Rz(yaw) Ry(pitch) Rx(roll)', ...
+    uicontrol(fig,'Style','text','String','Tool R = Rz(yaw) Ry(pitch) Rx(roll)', ...
         'Position',[.135 .025 .31 .03],'BackgroundColor',fig.Color);
     uicontrol(fig,'Style','text','String','IK solutions (degrees) - paired rings share q2, q3', ...
         'Position',[.49 .303 .49 .03],'BackgroundColor',fig.Color,'FontWeight','bold');
@@ -173,7 +174,7 @@ end
     end
 
     function redraw()
-        T = poseTransform(pose);
+        T = toolTransform(pose,dh.d(6));
         [Q,memory] = match_ik_solutions(analytical_ik_6r(T,poe,dh),memory);
         active = find(all(isfinite(Q),1));
         data = repmat({'--'},8,8);
@@ -213,14 +214,12 @@ end
         solutionTable.Data = data;
         rho = hypot(pose(1),pose(2));
         if rho > 1e-10, azimuth = atan2(pose(2),pose(1)); end
-        curve = singularity_workspace_curve(map.wrist,dh.d(6)*T(1:3,1),azimuth);
-        boundary.XData = curve(1,:); boundary.YData = curve(2,:);
         target.XData = rho; target.YData = pose(3);
         if ~dragging  % Changing the scale during a drag would move the target under the pointer.
             xlim(workspaceAxes,[0,max(reach,1.05*rho)]);
         end
-        workspaceTitle.String = {'Tool workspace: current orientation', ...
-            sprintf('Azimuth = %.1f deg; black = arm det(J) zero',azimuth*180/pi)};
+        workspaceTitle.String = {'Wrist-center workspace', ...
+            sprintf('Target azimuth = %.1f deg; black: D = 0',azimuth*180/pi)};
         if isempty(active)
             status.String = 'Unreachable pose: no IK solutions. Move the pose back into reach.';
             target.MarkerFaceColor = [.85 .25 .2];
@@ -228,8 +227,9 @@ end
             status.String = sprintf('%d IK solutions | IDs follow joint continuity | Wrist singularities are flagged in the list',numel(active));
             target.MarkerFaceColor = [.95 .75 .15];
         end
-        % Expose radians and the exact target for inspection without parsing the table.
-        fig.UserData = struct('Q',Q,'T',T,'pose',pose,'azimuth',azimuth);
+        % T is the tool pose; pose(1:3) and wristPosition are the wrist target.
+        fig.UserData = struct('Q',Q,'T',T,'pose',pose, ...
+            'wristPosition',pose(1:3),'azimuth',azimuth);
     end
 
     function resetPose()
@@ -254,11 +254,12 @@ end
     end
 end
 
-function T = poseTransform(pose)
-% Fixed-axis roll/pitch/yaw: rotate about x, then y, then z.
+function T = toolTransform(pose,d6)
+% Convert wrist position and fixed-axis tool roll/pitch/yaw to a tool pose.
 r = pose(4)*pi/180; p = pose(5)*pi/180; y = pose(6)*pi/180;
 Rx = [1 0 0; 0 cos(r) -sin(r); 0 sin(r) cos(r)];
 Ry = [cos(p) 0 sin(p); 0 1 0; -sin(p) 0 cos(p)];
 Rz = [cos(y) -sin(y) 0; sin(y) cos(y) 0; 0 0 1];
-T = [Rz*Ry*Rx,pose(1:3); 0 0 0 1];
+R = Rz*Ry*Rx;
+T = [R,pose(1:3)+d6*R(:,1); 0 0 0 1];
 end
