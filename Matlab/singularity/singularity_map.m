@@ -18,11 +18,7 @@ dragging = false;
 dragDirection = [1;0];
 dragBounds = zeros(2,2);
 previousPointer = 'arrow';
-T0 = poe_fk([-45;162;84;36;-124;-124]*pi/180,poe);  % Eight regular solutions.
-R0 = T0(1:3,1:3);
-initial = [T0(1:3,4)-dh.d(6)*R0(:,1); atan2(R0(3,2),R0(3,3))*180/pi; ...
-    atan2(-R0(3,1),hypot(R0(1,1),R0(2,1)))*180/pi; ...
-    atan2(R0(2,1),R0(1,1))*180/pi];
+initial = [3;0;3;0;0;0];  % Wrist center (m), tool RPY (deg); eight regular solutions.
 pose = initial;  % [wrist x; wrist y; wrist z; tool roll; tool pitch; tool yaw].
 reach = sum(vecnorm(diff([zeros(3,1),poe.r(:,1:5)],1,2)));
 limits = [-reach reach; -reach reach; -reach reach; -180 180; -90 90; -180 180];
@@ -85,10 +81,11 @@ try
         fields(i) = uicontrol(fig,'Style','edit','String',sprintf('%.4f',pose(i)), ...
             'Position',[.11 y .075 .032],'BackgroundColor','white', ...
             'Tag',sprintf('pose-%d-field',i),'Callback',@(s,~) changePose(i,s));
-        step = [.01 .1];
-        if i > 3, step = [1 10]; end
+        step = .01;
+        if i > 3, step = 1; end
+        % The relative page step sets the native thumb width; keep all six equal.
         sliders(i) = uicontrol(fig,'Style','slider','Min',limits(i,1),'Max',limits(i,2), ...
-            'Value',pose(i),'SliderStep',step/diff(limits(i,:)), ...
+            'Value',pose(i),'SliderStep',[step/diff(limits(i,:)),1/36], ...
             'Position',[.20 y .24 .028],'Tag',sprintf('pose-%d-slider',i), ...
             'Callback',@(s,~) changePose(i,s));
         listeners{i} = addlistener(sliders(i),'ContinuousValueChange',@(s,~) changePose(i,s));
