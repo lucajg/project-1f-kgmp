@@ -6,7 +6,7 @@ are unchanged snapshots of the previous implementation and checks. Links in
 the original documentation are relative to its former location, `Matlab/ik/`.
 
 This version eliminates the shoulder and elbow angles to obtain a quartic in
-`tan(q1/2)`. The report's [earlier derivation](../../../../report/sections/analytical_ik.tex)
+`tan(q1/2)`. The report's [earlier derivation](../../../../report/history/analytical_ik.tex)
 describes that method. The active solver and its documentation are in
 [Matlab/ik](../../README.md).
 

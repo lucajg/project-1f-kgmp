@@ -4,7 +4,7 @@
 
 Solve the positioning arm, wrist orientation, or complete CuRo6R tool pose, retaining the available solution branches.
 
-The active solver follows the supplied [LaTeX derivation](derivation.tex), using a quartic in `tan(q3/2)`. The former `tan(q1/2)` implementation, its checks, and its documentation are preserved in [history/q1_quartic](history/q1_quartic/README.md). `curo6r_setup` excludes the archive from the MATLAB path.
+The active solver follows the [report's LaTeX derivation](../../report/sections/analytical_ik.tex), using a quartic in `tan(q3/2)`. The former `tan(q1/2)` implementation, its checks, and its documentation are preserved in [history/q1_quartic](history/q1_quartic/README.md). `curo6r_setup` excludes the archive from the MATLAB path.
 
 ## Files
 
@@ -14,7 +14,7 @@ The active solver follows the supplied [LaTeX derivation](derivation.tex), using
 | [analytical_ik_wrist.m](analytical_ik_wrist.m) | Find wrist alternatives for a prescribed arm configuration. |
 | [analytical_ik_6r.m](analytical_ik_6r.m) | Combine arm and wrist branches and verify the complete pose. |
 | [check_analytical_ik.m](check_analytical_ik.m) | Check round trips, branch completeness, singularities, and invalid targets. |
-| [derivation.tex](derivation.tex) | Unmodified supplied LaTeX derivation used by the active solver. |
+| [Report derivation](../../report/sections/analytical_ik.tex) | Supplied derivation integrated into the current report. |
 | [history/q1_quartic](history/q1_quartic/README.md) | Historical solver and instructions for running it separately. |
 
 ## Example
@@ -66,4 +66,4 @@ Different joint vectors can reproduce the same pose, so check FK agreement rathe
 
 **[check_analytical_ik.m](check_analytical_ik.m)** performs repeatable round trips against independent DH and URDF forward kinematics. It checks default and modified dimensions, recovery of the original regular arm and both wrist branches, `q1 = pi`, `q3 = +/-pi` and nearby roots, repeated arm roots, exact and near wrist singularities, representative solutions on the base axis, duplicate removal, the four-arm/eight-pose branch bound, unreachable targets, and rejection of non-rigid target matrices and unsupported degenerate dimensions. It also checks standalone wrist reconstruction, branch ordering, singularity flags and threshold overrides, and row-vector arm inputs. Run `check_analytical_ik` after running `curo6r_setup`.
 
-Run `run_checks(false,true)` to include the dependent planner and singularity-viewer checks. The report's [earlier IK derivation](../../report/sections/analytical_ik.tex) describes the archived `q1` method; [derivation.tex](derivation.tex) is the source for the active implementation.
+Run `run_checks(false,true)` to include the dependent planner and singularity-viewer checks. The report's [historical IK derivation](../../report/history/analytical_ik.tex) describes the archived `q1` method; the [current report section](../../report/sections/analytical_ik.tex) describes the active implementation.

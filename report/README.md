@@ -31,6 +31,35 @@ latexmk -pdf report.tex
 # Alternatively: pdflatex report.tex, twice; or tectonic report.tex.
 ```
 
+On this workstation, `latexmk` is installed in `~/.local/bin` and
+[.latexmkrc](.latexmkrc) uses the existing Tectonic engine when `pdflatex` is
+unavailable. The configuration adapts Tectonic's log metadata for latexmk;
+compilation errors still fail the build, and included `.tex` files remain
+tracked dependencies. Tectonic downloads any missing packages or fonts on
+first use. If the shell still remembers a missing command, run `rehash`.
+
+For a conventional Ubuntu TeX Live installation instead, the required packages
+are `latexmk texlive-latex-recommended texlive-pictures lmodern`. With those
+installed, the same command automatically uses `pdflatex`.
+
+## Current and historical inverse kinematics
+
+[sections/analytical_ik.tex](sections/analytical_ik.tex) contains the current
+derivation in `t = tan(q3/2)`, matching the active MATLAB solver. Its notation
+macros live in the shared preamble, and angle recovery explicitly uses
+`atan2`. The report preserves its normal headers and spacing throughout.
+
+The previous `tan(q1/2)` derivation is preserved unchanged in
+[history/analytical_ik.tex](history/analytical_ik.tex). Compile it in the same
+report layout, with a separate output file, using:
+
+```sh
+latexmk -pdf historical_ik.tex
+```
+
+`working_notes.tex` uses the current derivation; its cusp verification and the
+plot generator now evaluate the same `q3` quartic.
+
 The main prose is in `sections/dh_parameters.tex`, `sections/poe_model.tex`,
 `sections/fk_verification.tex`, `sections/jacobian.tex`, and
 `sections/analytical_ik.tex`.
@@ -52,7 +81,7 @@ cusps in both panels. At `q5 = pi/2`, the arm factor equals the full Jacobian
 determinant. The generator checks the periodic boundaries, the residual along
 the interpolated contour, and the triple-root conditions of the IK quartic at
 the stored cusp configurations. The largest normalised triple-root residual
-is 4.82e-14; the third derivative is nonzero at all four points. Cusp locations
+is 4.00e-15 for the current `q3` quartic; the third derivative is nonzero at all four points. Cusp locations
 were obtained numerically from `D=0` and
 `grad(D) dot (dz_w/dq3, -dz_w/dq2) = 0`; the polynomial check rejects stationary
 height points that also satisfy these equations but are not cusps.

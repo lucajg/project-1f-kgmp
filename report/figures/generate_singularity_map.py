@@ -53,8 +53,9 @@ def verified_cusps():
     These were located by solving D=0 and grad(D).(z_q3,-z_q2)=0.
     A stationary z can also satisfy these equations without being a cusp.
     Checking P=P'=P''=0 and P''' != 0 rejects such false candidates.
-    The polynomial coefficients below are in descending powers of tan(q1/2),
-    exactly as in the analytical IK section, after rotating the target to y=0.
+    The polynomial coefficients below are in descending powers of tan(q3/2),
+    exactly as in the current analytical IK section. Its target invariants
+    rho^2+h^2 and h do not depend on q1.
     """
     cusps = np.array([
         [2.9095335489797884, -2.7500126139918746],
@@ -68,17 +69,21 @@ def verified_cusps():
         assert abs(arm_factor(q2, q3)) < 1e-10
         x, y, z = wrist_position(q2, q3)
         rho, h = np.hypot(x, y), z - 1
-        t = np.tan(-np.arctan2(y, x) / 2)
+        t = np.tan(q3 / 2)
         denominator = np.array([1., 0., 1.])
-        y_num = np.array([h / 2, -np.sqrt(3) * rho, h / 2])
-        n0 = rho**2 + h**2 + a1**2
-        n_num = np.array([n0 + 2 * a1 * rho, 0., n0 - 2 * a1 * rho])
-        k = d2**2 - a2**2 - d3**2 - d4**2
-        sine = y_num - d2 * denominator
-        cosine = n_num + k * denominator - 2 * d2 * y_num
-        polynomial = (4 * a2**2 * np.convolve(sine, sine)
-                      + np.convolve(cosine, cosine)
-                      - 4 * a2**2 * d4**2 * np.convolve(denominator, denominator))
+        c_alpha, s_alpha = np.sqrt(3) / 2, 0.5
+        length_sum = a1**2 + a2**2 + d2**2 + d3**2 + d4**2
+        f1_num = np.array([a2 - d4, 0., a2 + d4])
+        b_num = np.array([d2, 2 * d4, d2])
+        f3_num = np.array([length_sum - 2 * a2 * d4, 4 * d2 * d4,
+                          length_sum + 2 * a2 * d4])
+        u = (rho**2 + h**2) * denominator - f3_num
+        v = h * denominator - s_alpha * b_num
+        polynomial = (c_alpha**2 * np.convolve(u, u)
+                      + 4 * a1**2 * np.convolve(v, v)
+                      - 4 * a1**2 * c_alpha**2
+                      * (np.convolve(f1_num, f1_num)
+                         + d3**2 * np.convolve(denominator, denominator)))
         polynomial /= np.max(np.abs(polynomial))
         residual = max(abs(np.polyval(np.polyder(polynomial, order), t))
                        for order in range(3))

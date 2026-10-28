@@ -1,5 +1,5 @@
 function Q = analytical_ik_3r(T_d, poe_model, dh_model)
-% Position IK from the q3 quartic in derivation.tex.
+% Position IK from the q3 quartic in report/sections/analytical_ik.tex.
 % Each column of Q is [q1; q2; q3] in radians.
 % T_d is the desired link_6 pose; only its wrist center is constrained.
 % Solutions lie in [-pi, pi]; unreachable targets return zeros(3,0).

@@ -1,0 +1,257 @@
+\section{Analytical inverse kinematics}
+\label{sec:analytical-ik}
+
+The axes of joints 4--6 intersect at the wrist centre, allowing position and
+orientation to be solved separately. We first determine the arm angles
+$(q_1,q_2,q_3)$ from the desired wrist-centre position, then recover the wrist
+angles $(q_4,q_5,q_6)$ from the desired orientation.
+
+\subsection{Wrist-centre positioning}
+\label{sec:ik-position}
+
+Let $R_d$ and $p_d$ denote the desired orientation and position of
+\texttt{link\_6} relative to \texttt{base\_link}. Since the endpoint offset lies
+along the tool's $x$ axis, the target wrist centre is
+\begin{equation}
+ p_w=p_d-d_6R_de_x=(x_w,y_w,z_w)^T,
+ \qquad e_x=(1,0,0)^T.
+ \label{eq:ik-wrist-target}
+\end{equation}
+Throughout, $c_i=\cos q_i$ and $s_i=\sin q_i$.
+
+\subsubsection*{Derivation}
+
+\textbf{1. Relate the target wrist position to the three arm angles.}
+For a candidate $q_1$, undo the base rotation, translate to the shoulder at
+$s=(a_1,0,d_1)^T$, and undo the fixed tilt $\gamma=\pi/6$.
+The resulting auxiliary frame follows the base rotation and fixed tilt, but
+not the joint-2 rotation. With $h=z_w-d_1$ and $(c_\gamma,s_\gamma)=(\sqrt{3}/2,1/2)$,
+\begin{equation}
+ \begin{aligned}
+ r(q_1)&:=R_x(-\gamma)\bigl(R_z(-q_1)p_w-s\bigr)=(X,Y,Z)^T,\\
+ X&=c_1x_w+s_1y_w-a_1,\\
+ Y&=c_\gamma(-s_1x_w+c_1y_w)+s_\gamma h,\\
+ Z&=-s_\gamma(-s_1x_w+c_1y_w)+c_\gamma h.
+ \end{aligned}
+ \label{eq:ik-shoulder-coordinates}
+\end{equation}
+These coordinates still depend on the unknown $q_1$.
+
+In the moving URDF frame of \texttt{link\_2}, the shoulder-to-elbow vector is
+$a=(a_2,d_2,0)^T$. The elbow-to-wrist vector is $R_z(q_3)b_0$, where
+$b_0=(d_4,0,d_3)^T$ is expressed in the URDF frame of \texttt{link\_3\_d3}.
+Applying the shoulder rotation maps their sum into the auxiliary frame:
+\begin{equation}
+ r(q_1)=R_y(q_2)\bigl(a+R_z(q_3)b_0\bigr)
+       =R_y(q_2)\begin{pmatrix}
+         a_2+d_4c_3\\d_2+d_4s_3\\d_3
+       \end{pmatrix}.
+ \label{eq:ik-arm-geometry}
+\end{equation}
+The rotation \(R_z(q_3)\) above is expressed using the URDF link frames, with \(q_3=0\) 
+at the home configuration. The DH frames use a different reference orientation: at home, 
+their angular parameter is already \(\theta_3=\pi/2\). Consequently, \(\theta_3=q_3+\pi/2\), 
+whereas the rotation in this geometric derivation uses \(q_3\) directly.
+
+\textbf{2. Express $\sin q_3$ and $\cos q_3$ as functions of $q_1$.}
+Rotation about $y$ preserves both the $y$ component and the norm.
+Equation~\eqref{eq:ik-arm-geometry} therefore gives two relations independent of $q_2$:
+\begin{equation}
+ \begin{aligned}
+ Y&=d_2+d_4s_3,\\
+ N:=X^2+Y^2+Z^2
+  &=a_2^2+d_2^2+d_3^2+d_4^2+2a_2d_4c_3+2d_2d_4s_3.
+ \end{aligned}
+ \label{eq:ik-invariants}
+\end{equation}
+Setting $K=d_2^2-a_2^2-d_3^2-d_4^2$ yields
+\begin{equation}
+ s_3=\frac{Y-d_2}{d_4},
+ \qquad c_3=\frac{N+K-2d_2Y}{2a_2d_4}.
+ \label{eq:ik-elbow-functions}
+\end{equation}
+Here $a_2=2$ and $d_4=2.5$ are nonzero. For a trial value of \(q_1\), these expressions 
+give the required values of \(\sin q_3\) and \(\cos q_3\). They correspond to 
+a real elbow angle only if \(s_3^2+c_3^2=1\). This consistency condition provides 
+the equation used to determine \(q_1\).
+
+\textbf{3. Determine the candidate base angles $q_1$.}
+Since $R_x(-\gamma)$ preserves the norm,
+$N=\|r(q_1)\|^2=\|R_z(-q_1)p_w-s\|^2$. Defining
+$N_0=x_w^2+y_w^2+h^2+a_1^2$ gives the compact expression
+\begin{equation}
+ N=N_0-2a_1(x_wc_1+y_ws_1).
+ \label{eq:ik-norm-affine}
+\end{equation}
+Both $N$ and $Y$ are affine in $(c_1,s_1)$. Substitution of
+\eqref{eq:ik-elbow-functions} into $s_3^2+c_3^2=1$ gives
+\begin{equation}
+ 4a_2^2(Y-d_2)^2+(N+K-2d_2Y)^2=4a_2^2d_4^2.
+ \label{eq:ik-base-constraint}
+\end{equation}
+Introduce the half-angle variable $t=\tan(q_1/2)$, so that
+\begin{equation}
+ D=1+t^2,\qquad c_1=\frac{1-t^2}{D},\qquad s_1=\frac{2t}{D}.
+ \label{eq:ik-half-angle}
+\end{equation}
+Writing $Y=\widetilde Y/D$ and $N=\widetilde N/D$, their quadratic numerators are
+\begin{equation}
+ \begin{aligned}
+ \widetilde Y(t)&=c_\gamma\bigl[y_w(1-t^2)-2x_wt\bigr]+\tfrac12hD,\\
+ \widetilde N(t)&=N_0D-2a_1\bigl[x_w(1-t^2)+2y_wt\bigr].
+ \end{aligned}
+ \label{eq:ik-polynomial-numerators}
+\end{equation}
+Multiplying \eqref{eq:ik-base-constraint} by $D^2$ gives
+\begin{equation}
+ \boxed{P(t)=4a_2^2(\widetilde Y-d_2D)^2
+       +(\widetilde N+KD-2d_2\widetilde Y)^2
+       -4a_2^2d_4^2D^2=0.}
+ \label{eq:ik-quartic}
+\end{equation}
+Each quantity being squared is quadratic in $t$, so $P$ has degree at most four.
+Every real root supplies a candidate $q_1=2\arctan t$.
+The substitution $t=\tan(q_1/2)$ is undefined at $q_1=\pi$, so this angle is not
+represented by any finite root of $P(t)$. To avoid missing a solution, we test
+$q_1=\pi$ separately in \eqref{eq:ik-base-constraint} and retain it only if that
+equation is satisfied.
+
+\textbf{4. Recover $q_2$ and $q_3$ for each candidate $q_1$.}
+For each candidate $q_1$, evaluate \eqref{eq:ik-shoulder-coordinates} and
+\eqref{eq:ik-elbow-functions}, then define $A=a_2+d_4c_3$.
+The remaining components of \eqref{eq:ik-arm-geometry} are
+\begin{equation}
+ X=c_2A+s_2d_3,\qquad Z=-s_2A+c_2d_3.
+ \label{eq:ik-shoulder-components}
+\end{equation}
+Thus
+\begin{equation}
+ \begin{aligned}
+ C_2&=AX+d_3Z=(A^2+d_3^2)c_2,\\
+ S_2&=d_3X-AZ=(A^2+d_3^2)s_2,
+ \end{aligned}
+ \qquad q_2=\operatorname{atan2}(S_2,C_2).
+ \label{eq:ik-shoulder-recovery}
+\end{equation}
+The common factor is positive, so no division is needed
+before applying $\operatorname{atan2}$. The elbow angle is recovered as
+$q_3=\operatorname{atan2}(s_3,c_3)$. Since $A$ uses $c_3$ directly, $q_2$ and $q_3$
+can be computed in either order.
+
+If leading polynomial coefficients vanish, the degree reduces.
+For this robot, \(P\equiv0\) occurs when the target wrist centre is a reachable point on the base rotation axis. 
+At such a position, \(q_1\) is arbitrary, yielding a continuous family of arm configurations.
+
+\subsubsection*{Practical evaluation}
+
+Given $(R_d,p_d)$, compute $p_w$ from \eqref{eq:ik-wrist-target}, followed by
+$h$, $K$ and $N_0$, and form $P$ using \eqref{eq:ik-polynomial-numerators}--\eqref{eq:ik-quartic}.
+For $P\not\equiv0$, collect $q_1=2\arctan t$ from every real root and test
+$q_1=\pi$ separately in \eqref{eq:ik-base-constraint}; for $P\equiv0$, choose
+any $q_1$, for example $0$, to represent the continuous family.
+For each candidate, evaluate $(X,Y,Z)$ from \eqref{eq:ik-shoulder-coordinates},
+set $N=X^2+Y^2+Z^2$, obtain $(s_3,c_3)$ from \eqref{eq:ik-elbow-functions},
+and set $A=a_2+d_4c_3$. Then compute
+\[
+ q_2=\operatorname{atan2}(d_3X-AZ,\,AX+d_3Z),
+ \qquad q_3=\operatorname{atan2}(s_3,c_3).
+\]
+Check each triple against the target wrist position using forward kinematics,
+represent angles in $[-\pi,\pi]$ and remove duplicates modulo $2\pi$.
+Pass the valid arm configurations to the wrist-orientation problem.
+
+\subsection{Endpoint orientation}
+\label{sec:ik-orientation}
+
+For each arm configuration $(q_1,q_2,q_3)$ found in the positioning step,
+we now determine the wrist angles $(q_4,q_5,q_6)$ that give the desired
+orientation $R_d$. Different arm configurations generally require different
+wrist angles, so this calculation is repeated for each arm solution.
+
+\subsubsection*{Derivation}
+
+\textbf{1. Express the desired orientation relative to the arm.}
+Using the same URDF link frames as in the positioning derivation, the
+orientation of \texttt{link\_3\_d3} relative to \texttt{base\_link} is
+\begin{equation}
+ R_{\text{arm}}=R_z(q_1)R_x(\gamma)R_y(q_2)R_z(q_3),
+ \qquad \gamma=\pi/6.
+ \label{eq:ik-arm-orientation}
+\end{equation}
+The wrist joints rotate about their local $x$, $z$ and $x$ axes, respectively.
+There are no fixed rotations between these URDF link frames. Thus
+\begin{equation}
+ R_d=R_{\text{arm}}R_{\text{wrist}},
+ \qquad
+ R_{\text{wrist}}:=R_{\text{arm}}^TR_d
+                 =R_x(q_4)R_z(q_5)R_x(q_6).
+ \label{eq:ik-wrist-orientation}
+\end{equation}
+Here the transpose undoes the known arm rotation. Let $r_{ij}$ denote the
+entry in row $i$ and column $j$ of $R_{\text{wrist}}$.
+
+\textbf{2. Use the first column to recover $q_5$ and $q_4$.}
+Since $R_x(q_6)e_x=e_x$, the first column is
+\begin{equation}
+ R_{\text{wrist}}e_x
+ =R_x(q_4)R_z(q_5)e_x
+ =\begin{pmatrix}c_5&c_4s_5&s_4s_5\end{pmatrix}^T
+ =\begin{pmatrix}r_{11}&r_{21}&r_{31}\end{pmatrix}^T.
+ \label{eq:ik-wrist-first-column}
+\end{equation}
+Thus $c_5=r_{11}$. Using $c_4^2+s_4^2=1$ also gives
+$\rho:=\sqrt{r_{21}^2+r_{31}^2}=|s_5|$.
+For $\rho>0$, take each sign $s_5=\pm\rho$. Dividing the last two entries
+by $s_5$ gives $c_4$ and $s_4$, so the two angle pairs are
+\begin{equation}
+ q_5=\operatorname{atan2}(s_5,r_{11}),\qquad
+ q_4=\operatorname{atan2}\!\left(\frac{r_{31}}{s_5},
+                               \frac{r_{21}}{s_5}\right).
+ \label{eq:ik-wrist-q45}
+\end{equation}
+Keep the chosen sign of $s_5$ in both fractions.
+The case $\rho=0$ is treated in step 4.
+
+\textbf{3. Undo $q_4$ to recover $q_6$.}
+Once $q_4$ is known, multiply on the left by $R_x(-q_4)$ to undo its rotation:
+\begin{equation}
+ B:=R_x(-q_4)R_{\text{wrist}}=R_z(q_5)R_x(q_6).
+ \label{eq:ik-wrist-remainder}
+\end{equation}
+The third row of $R_z(q_5)$ is $(0,0,1)$, so the third row of $B$ is
+$(0,s_6,c_6)$. We can therefore recover $q_6$ without dividing by $s_5$:
+\begin{equation}
+ q_6=\operatorname{atan2}(B_{32},B_{33}).
+ \label{eq:ik-wrist-q6}
+\end{equation}
+When $\rho>0$, the two wrist solutions are related by
+$(q_4,q_5,q_6)\mapsto(q_4+\pi,-q_5,q_6+\pi)$, with all angles taken modulo $2\pi$.
+
+\textbf{4. Handle the cases where $s_5=0$.}
+When $\rho=0$, we have $q_5=0$ or $q_5=\pi$ modulo $2\pi$.
+The formula for $q_4$ divides by $s_5$ and no longer applies. The axes of
+joints 4 and 6 lie on the same line, so their angles cannot be determined
+separately. The wrist rotation reduces to $R_x(q_4+q_6)$ for $q_5=0$ and
+$R_x(q_4-q_6)R_z(\pi)$ for $q_5=\pi$. Thus only a sum or a difference is fixed:
+\begin{equation}
+ \begin{aligned}
+ q_5=0\ (r_{11}=1):\quad
+ &q_4+q_6=\sigma:=\operatorname{atan2}(r_{32},r_{22}),\\
+ q_5=\pi\ (r_{11}=-1):\quad
+ &q_4-q_6=\delta:=\operatorname{atan2}(-r_{32},-r_{22}).
+ \end{aligned}
+ \label{eq:ik-wrist-singular}
+\end{equation}
+These relations hold modulo $2\pi$. We may choose any $q_4$ and set
+$q_6=\sigma-q_4$ in the first case or $q_6=q_4-\delta$ in the second.
+Choosing $q_4=0$ gives the representatives $(0,0,\sigma)$ and $(0,\pi,-\delta)$
+for $(q_4,q_5,q_6)$.
+
+\subsubsection*{Practical evaluation}
+
+For each arm solution, use both wrist branches from steps 2--3 when $\rho$
+exceeds a small numerical tolerance. Otherwise, take $q_4=0$ and use the sign
+of $r_{11}$ to select the case in \eqref{eq:ik-wrist-singular}.
+Combine each wrist solution with its arm solution, represent all angles in
+$[-\pi,\pi]$, and remove duplicates modulo $2\pi$. Verify the position and
+orientation against $(p_d,R_d)$ by forward kinematics, using separate tolerances.

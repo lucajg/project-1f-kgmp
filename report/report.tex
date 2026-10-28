@@ -18,8 +18,8 @@
 \definecolor{dhgray}{HTML}{78838C}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\small\sffamily CuRo6R\enspace |\enspace Kinematic modelling}
-\fancyhead[R]{\small\sffamily Project 1F}
+\fancyhead[L]{\small\sffamily Kinematics-Grounded Motion Planning for Robots}
+\fancyhead[R]{\small\sffamily Project 1F \enspace |\enspace CuRo6R}
 \fancyfoot[C]{\small\thepage}
 \renewcommand{\headrulewidth}{0.3pt}
 \setlength{\parindent}{0pt}
@@ -27,6 +27,12 @@
 \captionsetup{font=small,labelfont=bf}
 \newcommand{\frameid}[1]{\{#1\}}
 \newcommand{\jointid}[1]{\mathrm{J}_{#1}}
+\newcommand{\vect}[1]{\mathbf{#1}}
+\newcommand{\trans}{\mathsf T}
+\newcommand{\ex}{\vect e_x}
+\newcommand{\ez}{\vect e_z}
+\newcommand{\qq}{\vect q}
+\newcommand{\Rcal}{\mathcal R}
 \newcommand{\DHDiagram}[1]{%
   \resizebox{\linewidth}{!}{\input{figures/dh_step_#1.tex}}%
 }
@@ -41,18 +47,18 @@
 \begin{document}
 \section{Forward kinematics models}
 \label{sec:fk-models}
-\providecommand{\DHSectionFile}{sections/dh_parameters}
+\providecommand{\DHSectionFile}{sections/dh_parameters.tex}
 \input{\DHSectionFile}
-\providecommand{\PoESectionFile}{sections/poe_model}
+\providecommand{\PoESectionFile}{sections/poe_model.tex}
 \input{\PoESectionFile}
-\providecommand{\FKVerificationFile}{sections/fk_verification}
+\providecommand{\FKVerificationFile}{sections/fk_verification.tex}
 \input{\FKVerificationFile}
-\providecommand{\JacobianSectionFile}{sections/jacobian}
+\providecommand{\JacobianSectionFile}{sections/jacobian.tex}
 \input{\JacobianSectionFile}
-\providecommand{\AnalyticalIKSectionFile}{sections/analytical_ik}
+\providecommand{\AnalyticalIKSectionFile}{sections/analytical_ik.tex}
 \input{\AnalyticalIKSectionFile}
 
 \clearpage
 \appendix
-\input{sections/dh_appendix}
+\input{sections/dh_appendix.tex}
 \end{document}
