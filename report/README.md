@@ -202,8 +202,9 @@ records the configuration set and residuals. The successive-origin formulas in
 the compact section were also checked to reproduce all six table entries exactly.
 
 The Jacobian section was checked with `check_jacobians(false)`: 114 configurations,
-two geometries, points 5/6, and expression frames 0:6. The maximum DH--PoE
-Frobenius residual was 1.11e-14; the finite-difference residual was 1.45e-9.
+two geometries, points 5/6, and expression frames 0:6. After converting DH
+axes to physical link axes, the maximum DH--PoE Frobenius residual was
+1.15e-14; the finite-difference residual was 1.45e-9.
 A separate symbolic calculation from the PoE model verified the zero wrist
 linear block, the displayed wrist matrix, and both determinant factors.
 The explicit determinant agreed with numerical evaluations at 113 configurations,

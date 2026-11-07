@@ -29,8 +29,12 @@ for i = 1:6
     w_skew = [0, -w(3), w(2); w(3), 0, -w(1); -w(2), w(1), 0];
     xi_hat(:,:,i) = [w_skew, v(:,i); 0, 0, 0, 0];
 end
-M = [1, 0, 0, r(1,6); 0, c, -s, r(2,6); 0, s, c, r(3,6); 0, 0, 0, 1];
-dh_model = dh_data(g);
+R_link = [1, 0, 0; 0, c, -s; 0, s, c];
+M = [R_link, r(:,6); 0, 0, 0, 1];
+% Physical link frames at home; slice f+1 is frame f (0 is base_link).
+R_home = repmat(R_link,1,1,7);
+R_home(:,:,1) = eye(3);
+R_home(:,:,2) = eye(3);
 poe_model = struct('omega',omega, 'r',r, 'S',[omega;v], ...
-    'xi_hat',xi_hat, 'M',M, 'R_home',dh_model.R_home);
+    'xi_hat',xi_hat, 'M',M, 'R_home',R_home);
 end

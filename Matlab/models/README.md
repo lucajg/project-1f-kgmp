@@ -29,7 +29,7 @@ urdf_data; % Creates urdf_model in the caller's workspace.
 
 ## Dependencies
 
-[Shared transforms](../shared/README.md). `poe_data` also calls `dh_data` for named home-frame orientations. Numerical construction needs no additional toolbox; symbolic dimensions require Symbolic Math Toolbox.
+[Shared transforms](../shared/README.md). Numerical construction needs no additional toolbox; symbolic dimensions require Symbolic Math Toolbox.
 
 ## Inputs, outputs, and implementation
 
@@ -41,7 +41,7 @@ The fixed `tool_transform` expresses endpoint frame `link_6` in DH frame 6. Thei
 
 **[poe_data.m](poe_data.m)** builds `poe_model` at the home configuration (`q = 0`). Each column of `omega` gives a joint's unit rotation axis, and `r` gives its physical joint origin. For a revolute joint, the screw axis is `S = [omega; v]`, with `v = r x omega = -omega x r`; this represents rotation about an axis that need not pass through the base origin. The function stores the screw axes in `S`, their `4 x 4` twist matrices in `xi_hat`, and the endpoint's home pose in `M`.
 
-The model also stores `R_home(:,:,f+1)`, the orientation of named DH frame `f` at home, with frame 0 in the first slice. These orientations are generated from the fixed angle offsets and twists in `dh_data.m`. This defines the coordinate axes selected by the Jacobian's `frame` input; the screw axes and endpoint home pose are still constructed from the PoE geometry above. The Jacobian obtains each current frame orientation by multiplying its home orientation by the rotation of the corresponding PoE partial product.
+The model also stores `R_home(:,:,f+1)`, the orientation of physical link frame `f` at home, with `base_link` in the first slice. These orientations match the URDF: frames 0 and 1 have identity orientation, and frames 2 through 6 have orientation `Rx(pi/6)`; frame 3 is `link_3_d3`. They are defined directly in `poe_data`, independently of DH. The Jacobian obtains the axes selected by `frame` by multiplying the home orientation by the rotation of the PoE partial product through joint `f`.
 
 **[urdf_data.m](urdf_data.m)** transcribes the six revolute joints from [CuRo6R.urdf](../../CuRo6R/CuRo6R.urdf) into `urdf_model`, with one joint per column of `xyz`, `rpy`, and `axis`. No file parsing is performed. Positions and roll-pitch-yaw angles place each joint frame relative to its parent link; axes are expressed in those local joint frames. The URDF's `0.52359877559` roll is interpreted as the intended exact `pi/6`, matching DH and PoE. The endpoint is `link_6`; `tool0` branches from `link_3_d3`, and visual/collision origins only place meshes.
 

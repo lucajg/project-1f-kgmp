@@ -85,6 +85,7 @@ end
 
 function check_poe_prefixes(poe,dh,urdf,Q)
 % Active joint count must not choose or replace the endpoint home pose.
+assert(isequal(poe.R_home(:,:,1),eye(3)));
 tool_offset = [0,-1,0,.2; 1,0,0,-.1; 0,0,1,.3; 0,0,0,1];
 tool = poe;
 tool.M = poe.M * tool_offset;
@@ -98,6 +99,13 @@ for sample = 1:size(Q,2)
         assert(norm(T-T_dh,'fro') < 1e-10,'PoE prefix changed the endpoint.');
         assert(norm(p-p_urdf(:,1:n_active),'fro') < 1e-10);
         assert(norm(w-w_urdf(:,1:n_active),'fro') < 1e-10);
+        % A truncated URDF chain ends at the corresponding physical link.
+        link_model = urdf;
+        link_model.n = n_active;
+        T_link = urdf_fk(q,link_model);
+        R_link = F0(1:3,1:3,end)*poe.R_home(:,:,n_active+1);
+        assert(norm(R_link-T_link(1:3,1:3),'fro') < 1e-10, ...
+            'PoE physical link orientation disagrees with URDF.');
         assert(isequal(size(F0),[4,4,n_active+1]));
         assert(isequal(F0(:,:,1),eye(4)));
         assert(norm(poe_fk(q.',poe,n_active)-T,'fro') < 1e-10);
@@ -112,5 +120,5 @@ for sample = 1:size(Q,2)
         end
     end
 end
-fprintf('PoE prefixes passed: tool poses, joint axes, row inputs, and wrist center.\n');
+fprintf('PoE prefixes passed: tool poses, link orientations, joint axes, row inputs, and wrist center.\n');
 end

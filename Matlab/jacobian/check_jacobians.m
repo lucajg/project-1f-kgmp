@@ -25,7 +25,10 @@ for geometry = 1:numel(geometries)
             for frame = 0:6
                 Jdh = dh_jacobian(q,frame,point,dh);
                 Jpoe = poe_jacobian(q,frame,point,poe);
-                max_error = max(max_error,norm(Jdh-Jpoe,'fro'));
+                % Both frames follow the same PoE prefix; their relative
+                % rotation is the constant home-frame rotation.
+                C = poe.R_home(:,:,frame+1).'*dh.R_home(:,:,frame+1);
+                max_error = max(max_error,norm(blkdiag(C,C)*Jdh-Jpoe,'fro'));
             end
         end
     end
@@ -41,9 +44,13 @@ for geometry = 1:numel(geometries)
             R = T0(1:3,1:3,frame+1);
             J = dh_jacobian(q,frame,point,dh);
             max_fd = max(max_fd,norm(J-blkdiag(R.',R.')*Jfd,'fro'));
+            C = poe.R_home(:,:,frame+1).'*dh.R_home(:,:,frame+1);
+            J = poe_jacobian(q,frame,point,poe);
+            Rpoe = R*C.';
+            max_fd = max(max_fd,norm(J-blkdiag(Rpoe.',Rpoe.')*Jfd,'fro'));
         end
     end
-    J = dh_jacobian(q,3,5,dh);
+    J = poe_jacobian(q,3,5,poe);
     assert(norm(J(1:3,4:6),'fro') < 1e-10);
     assert(abs(norm(J(4:6,6))-1) < 1e-10);
 
@@ -56,7 +63,7 @@ for geometry = 1:numel(geometries)
 end
 assert(max_error < 1e-10,'Numerical DH/PoE Jacobians disagree.');
 assert(max_fd < 1e-7,'Jacobian disagrees with differentiated forward kinematics.');
-fprintf('Jacobian DH-PoE: %.3e; finite differences: %.3e.\n',max_error,max_fd);
+fprintf('Jacobian DH-PoE after frame conversion: %.3e; finite differences: %.3e.\n',max_error,max_fd);
 fprintf('%d configurations, two geometries, points 5/6, frames 0:6.\n',size(Q,2));
 
 if include_symbolic
@@ -97,15 +104,23 @@ for c = 1:size(cases,1)
     point = cases(c,2);
     Jdh = simplify(dh_jacobian(qs,frame,point,dh));
     Jpoe = simplify(poe_jacobian(qs,frame,point,poe));
-    difference = simplify(expand(Jdh-Jpoe));
+    C = simplify(poe.R_home(:,:,frame+1).'*dh.R_home(:,:,frame+1));
+    difference = simplify(expand(blkdiag(C,C)*Jdh-Jpoe));
     assert(isequal(difference,sym(zeros(6))), ...
         'Symbolic DH/PoE mismatch for frame %d, point %d.',frame,point);
-    fprintf('Symbolic DH-PoE: frame %d, point %d agree exactly.\n',frame,point);
+    fprintf('Symbolic DH-PoE: frame %d, point %d agree after frame conversion.\n',frame,point);
+    if frame == 3 && point == 5
+        B = [1,0,cos(qs(5)); 0,-sin(qs(4)),cos(qs(4))*sin(qs(5)); ...
+             0,cos(qs(4)),sin(qs(4))*sin(qs(5))];
+        assert(isequal(simplify(Jpoe(1:3,4:6)),sym(zeros(3))));
+        assert(isequal(simplify(expand(Jpoe(4:6,4:6)-B)),sym(zeros(3))));
+        assert(isequal(simplify(expand(det(Jpoe(4:6,4:6))+sin(qs(5)))),sym(0)));
+    end
     Jdh_ad = dh_parameter_form(Jdh);
     Jpoe_ad = dh_parameter_form(Jpoe);
     Jdirect = dh_jacobian(qs,frame,point,dh_ad);
     assert(isequal(simplify(expand(Jdh_ad-Jdirect)),sym(zeros(6))));
-    assert(isequal(simplify(expand(Jpoe_ad-Jdirect)),sym(zeros(6))));
+    assert(isequal(simplify(expand(Jpoe_ad-blkdiag(C,C)*Jdirect)),sym(zeros(6))));
     evaluate_ad = matlabFunction(Jdh_ad,'Vars',{qs,[a1;a2;d1;d2;d3;d4;d6]});
     evaluate_dh = matlabFunction(Jdh,'Vars',{qs,parameters});
     evaluate_poe = matlabFunction(Jpoe,'Vars',{qs,parameters});

@@ -68,6 +68,6 @@ For each configuration and model pair, it measures three errors. Taking DH-PoE a
 
 Each row of `max_error` retains the largest pose, direction, and axis-line errors for one pair across all configurations. All comparisons, including the physical-origin check, must be below `1e-10`; using exact `pi/6` consistently leaves only floating-point roundoff. The function also repeats each model's final evaluation with a row vector and checks that all outputs match the column-vector result. On success it prints the sample count and a table of maximum errors; a failed comparison names the pair and measure. The pose norm combines rotation entries and position entries, so it is a numerical consistency check rather than a physical distance. These sampled checks support agreement between the implementations; they are not a proof for every configuration or an independent validation of the physical robot geometry.
 
-The check also compares shortened PoE products with independent DH FK when later angles are zero, verifies a custom tool home pose, and checks the wrist center obtained from the first three factors against DH frame 5.
+The check also compares shortened PoE products with independent DH FK when later angles are zero, checks each physical link orientation against a truncated URDF chain, verifies a custom tool home pose, and checks the wrist center obtained from the first three factors against DH frame 5.
 
 See the report's [FK verification](../../report/sections/fk_verification.tex).

@@ -1,5 +1,10 @@
 \input{sections/jacobian.tex}
 
+The physical link-3 frame has home orientation $R_x(\pi/6)$ and follows
+the first three joint motions. In its axes, the wrist columns are
+$e_x$, $R_x(q_4)e_z$, and $R_x(q_4)R_z(q_5)e_x$, giving the block $B$
+in \eqref{eq:jacobian-wrist}.
+
 \textbf{How the intermediate PoE transforms give the axes.}
 Write the product before joint $i$ as
 $F_{i-1}=e^{\widehat\xi_1q_1}\cdots e^{\widehat\xi_{i-1}q_{i-1}}

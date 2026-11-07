@@ -39,17 +39,22 @@ check_jacobians(false);
 
 ## Inputs, outputs, and implementation
 
-**[dh_jacobian.m](dh_jacobian.m)** and **[poe_jacobian.m](poe_jacobian.m)** both accept `(q, frame, joint, model)` and return a `6 x n` matrix with linear velocity above tool angular velocity. All joints contribute. `joint` selects the point at which the tool's velocity field is evaluated; `frame` selects the DH axes used to express both base-relative velocity vectors. This does not subtract the selected frame's own motion. DH selects a DH origin, while PoE selects a physical joint origin. Points 5 (wrist center) and 6 (endpoint) coincide across the models; other matching indices need not select the same point.
+**[dh_jacobian.m](dh_jacobian.m)** and **[poe_jacobian.m](poe_jacobian.m)** both accept `(q, frame, joint, model)` and return a `6 x n` matrix with linear velocity above tool angular velocity. All joints contribute. `joint` selects the point at which the tool's velocity field is evaluated; `frame` selects DH axes for `dh_jacobian` and physical URDF link axes for `poe_jacobian`, with frame 0 equal to `base_link` in both. PoE frame 3 is `link_3_d3`. Both velocity vectors remain base-relative; this does not subtract the selected frame's own motion. DH selects a DH origin, while PoE selects a physical joint origin. Points 5 (wrist center) and 6 (endpoint) coincide across the models; other matching indices need not select the same point.
 
 The Jacobians reuse the forward kinematics and a shared cross-product calculation. Both functions accept numerical or symbolic inputs. To derive an exact Jacobian, supply symbolic joint coordinates and models built from symbolic dimensions:
 
 ```matlab
 gs = robot_dimensions(true);
 qs = sym('q',[6,1],'real');
-Jdh_sym = simplify(dh_jacobian(qs,3,5,dh_data(gs)));
-Jpoe_sym = simplify(poe_jacobian(qs,3,5,poe_data(gs)));
-simplify(expand(Jdh_sym - Jpoe_sym)) % A 6 x 6 zero matrix.
+dh = dh_data(gs);
+poe = poe_data(gs);
+Jdh_sym = simplify(dh_jacobian(qs,3,5,dh));
+Jpoe_sym = simplify(poe_jacobian(qs,3,5,poe));
+C = simplify(poe.R_home(:,:,4).'*dh.R_home(:,:,4));
+simplify(expand(blkdiag(C,C)*Jdh_sym - Jpoe_sym)) % A 6 x 6 zero matrix.
 ```
+
+Here `C` converts DH frame-3 components to physical link-3 components. The relative rotation is constant because both frames follow the same first three joint motions. For any common reference point, compare the Jacobians in matching axes; direct equality applies in frame 0.
 
 **[dh_jacobian_symbolic.m](dh_jacobian_symbolic.m)** and **[poe_jacobian_symbolic.m](poe_jacobian_symbolic.m)** are short entry scripts using these same functions; edit `k` and `f` to select the point and expression frame. They produce `Jdh_sym` and `Jpoe_sym` in the shared dimension symbols, plus `Jdh_ad_sym` and `Jpoe_ad_sym` in DH parameters. Their model and joint variables remain separate from the numerical examples.
 
@@ -57,6 +62,6 @@ simplify(expand(Jdh_sym - Jpoe_sym)) % A 6 x 6 zero matrix.
 
 ## Checks
 
-**[check_jacobians.m](check_jacobians.m)** compares the numerical DH and PoE Jacobians at 114 configurations, for points 5 and 6 and every expression frame from 0 to 6, using both default and modified dimensions. It also checks row-vector inputs, the wrist's zero linear columns and retained sixth angular column, the closed-form PoE motions against matrix exponentials, and finite differences of position and tool rotation. By default it additionally proves symbolic DH-PoE equality for `(frame, point) = (0,6), (0,5), (3,5)` and compares numerical evaluations of those symbolic results with the numerical models. The DH parameter forms are checked against direct derivation from symbolic `a`/`d` arrays and against numerical models. Call `check_jacobians(false)` to run only the numerical checks.
+**[check_jacobians.m](check_jacobians.m)** compares the numerical DH and PoE Jacobians after frame conversion at 114 configurations, for points 5 and 6 and every expression frame from 0 to 6, using both default and modified dimensions. It also checks row-vector inputs, the wrist's zero linear columns and retained sixth angular column, the closed-form PoE motions against matrix exponentials, and both formulations against finite differences of position and tool rotation. By default it additionally proves symbolic DH-PoE equality after frame conversion for `(frame, point) = (0,6), (0,5), (3,5)`, verifies the physical link-3 wrist block and its determinant, and compares numerical evaluations of those symbolic results with the numerical models. The DH parameter forms are checked against direct derivation from symbolic `a`/`d` arrays in matching axes and against numerical models. Call `check_jacobians(false)` to run only the numerical checks.
 
 See the report's [Jacobian derivation](../../report/sections/jacobian.tex) and [detailed notes](../../report/notes/jacobian_detailed.tex).
