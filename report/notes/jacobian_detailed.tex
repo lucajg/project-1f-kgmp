@@ -31,22 +31,6 @@ Changing the reference point preserves rank, but can change the singular
 values. Numerical singular-value margins should therefore use a fixed
 reference point.
 
-\textbf{Explicit arm factor.}
-Using the DH lengths and $\gamma=\pi/6$, define
-\begin{equation}
- U=a_2+d_4c_3,\qquad X=Uc_2+d_3s_2,\qquad Z=-Us_2+d_3c_2.
-\end{equation}
-The symbolic result can then be written as
-\begin{equation}
- D(q_2,q_3)=\frac{d_4}{2}
- \left[a_1Zc_3-\sqrt3\,a_1Us_3
-       -\sqrt3\,X(a_2s_3-d_2c_3)\right].
- \label{eq:jacobian-arm-factor}
-\end{equation}
-This expression contains neither $q_1$, $q_4$ nor $q_6$.
-Its zeros generally depend on the pair $(q_2,q_3)$, so the arm singularities
-are studied as curves in that plane.
-
 \textbf{From joint space to the wrist-centre workspace.}
 Set $V=d_2+d_4s_3$, $c_\gamma=\cos\gamma$ and $s_\gamma=\sin\gamma$.
 At $q_1=0$, the wrist centre is

@@ -45,6 +45,14 @@ We use $J={}^3J_5$, whose zero block makes the determinant easy to evaluate:
  \det J(q)=\sin q_5\,D(q_2,q_3),\qquad D(q_2,q_3)=-\det A.
  \label{eq:jacobian-determinant}
 \end{equation}
+Using the DH lengths, define $U=a_2+d_4c_3$, $X=Uc_2+d_3s_2$, and
+$Z=-Us_2+d_3c_2$. The explicit arm factor is
+\begin{equation}
+ D(q_2,q_3)=\frac{d_4}{2}
+ \left[a_1Zc_3-\sqrt3\,a_1Us_3
+       -\sqrt3\,X(a_2s_3-d_2c_3)\right].
+ \label{eq:jacobian-arm-factor}
+\end{equation}
 Changing the expression frame or velocity reference point preserves this
 determinant, provided all six columns describe the same full tool motion.
 The wrist factor vanishes at $q_5=0$ or

@@ -16,9 +16,9 @@ and `notes/poe_model_detailed.tex`. The latter retains the screw-axis derivation
 Rodrigues' formula and the expanded home pose. Shared verification is in
 `sections/fk_verification.tex`, with full details preserved in
 `notes/fk_verification_detailed.tex`.
-The compact Jacobian section is in `sections/jacobian.tex`.
+The compact Jacobian section, including the explicit arm factor, is in `sections/jacobian.tex`.
 `notes/jacobian_detailed.tex` adds the intermediate-axis construction,
-the determinant argument, the explicit arm factor, and the workspace mapping
+the determinant argument, and the workspace mapping
 and cusp verification.
 To compile the detailed version separately from this directory,
 use `latexmk -pdf working_notes.tex` (or `tectonic working_notes.tex`). It shares the
