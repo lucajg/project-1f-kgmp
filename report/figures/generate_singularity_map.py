@@ -1,7 +1,8 @@
 """Render corresponding arm singularity curves in joint and wrist space.
 
-Run from any directory. Requires NumPy and Matplotlib. The PDF is the vector
-asset included by the report; the PNG is a preview. The formula and dimensions
+Run from any directory. Requires NumPy and Matplotlib. The PDF keeps curves
+and text as vectors, with raster root-count shading; the PNG is a preview.
+The formula and dimensions
 match notes/jacobian_detailed.tex and Matlab/models/robot_dimensions.m.
 """
 
@@ -13,6 +14,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from matplotlib.colors import BoundaryNorm, ListedColormap
 import numpy as np
 
 
@@ -47,6 +49,49 @@ def wrist_section(q2, q3):
     return np.hypot(x, y), z
 
 
+def quartic_coefficients(rho, z):
+    """Descending coefficients of P(t), t=tan(q3/2), for wrist targets."""
+    rho, z = np.broadcast_arrays(rho, z)
+    a1, a2, d2, d3, d4 = 0.8, 2, 1.25, 0.75, 2.5
+    h = z - 1
+    denominator = np.array([1., 0., 1.])
+    length_sum = a1**2 + a2**2 + d2**2 + d3**2 + d4**2
+    f1_num = np.array([a2 - d4, 0., a2 + d4])
+    b_num = np.array([d2, 2 * d4, d2])
+    f3_num = np.array([length_sum - 2 * a2 * d4, 4 * d2 * d4,
+                      length_sum + 2 * a2 * d4])
+    u = (rho**2 + h**2)[..., None] * denominator - f3_num
+    v = h[..., None] * denominator - 0.5 * b_num
+    polynomial = np.zeros(rho.shape + (5,))
+    for i in range(3):
+        for j in range(3):
+            polynomial[..., i + j] += 0.75 * u[..., i] * u[..., j]
+            polynomial[..., i + j] += 4 * a1**2 * v[..., i] * v[..., j]
+    polynomial -= 3 * a1**2 * (np.convolve(f1_num, f1_num)
+                              + d3**2 * np.convolve(denominator, denominator))
+    return polynomial
+
+
+def real_root_counts(rho, z):
+    """Count real projective roots at regular targets, including q3=pi.
+
+    Reverse coefficients where helpful to avoid a poorly conditioned leading
+    coefficient near t=infinity. Reversal preserves the projective root count.
+    The grid samples open regions; counts on multiple-root curves are not used.
+    """
+    polynomial = quartic_coefficients(rho, z)
+    reverse = np.abs(polynomial[..., 0]) < np.abs(polynomial[..., -1])
+    polynomial = np.where(reverse[..., None], polynomial[..., ::-1], polynomial)
+    assert np.all(np.abs(polynomial[..., 0]) > 1e-10)
+    companion = np.zeros(polynomial.shape[:-1] + (4, 4))
+    companion[..., 0, :] = -polynomial[..., 1:] / polynomial[..., :1]
+    companion[..., 1:, :-1] = np.eye(3)
+    roots = np.linalg.eigvals(companion)
+    counts = np.sum(np.abs(roots.imag) < 1e-8 * (1 + np.abs(roots.real)), axis=-1)
+    assert np.all(np.isin(counts, [0, 2, 4]))
+    return counts
+
+
 def verified_cusps():
     """Four numerically located cusps, checked through the arm IK quartic.
 
@@ -63,27 +108,12 @@ def verified_cusps():
         [-0.36868905732949386, -2.2904008172381474],
         [-1.8439112435799765, 0.87677557117750471],
     ])
-    a1, a2, d2, d3, d4 = 0.8, 2, 1.25, 0.75, 2.5
     max_residual = 0.0
     for q2, q3 in cusps:
         assert abs(arm_factor(q2, q3)) < 1e-10
         x, y, z = wrist_position(q2, q3)
-        rho, h = np.hypot(x, y), z - 1
         t = np.tan(q3 / 2)
-        denominator = np.array([1., 0., 1.])
-        c_alpha, s_alpha = np.sqrt(3) / 2, 0.5
-        length_sum = a1**2 + a2**2 + d2**2 + d3**2 + d4**2
-        f1_num = np.array([a2 - d4, 0., a2 + d4])
-        b_num = np.array([d2, 2 * d4, d2])
-        f3_num = np.array([length_sum - 2 * a2 * d4, 4 * d2 * d4,
-                          length_sum + 2 * a2 * d4])
-        u = (rho**2 + h**2) * denominator - f3_num
-        v = h * denominator - s_alpha * b_num
-        polynomial = (c_alpha**2 * np.convolve(u, u)
-                      + 4 * a1**2 * np.convolve(v, v)
-                      - 4 * a1**2 * c_alpha**2
-                      * (np.convolve(f1_num, f1_num)
-                         + d3**2 * np.convolve(denominator, denominator)))
+        polynomial = quartic_coefficients(np.hypot(x, y), z)
         polynomial /= np.max(np.abs(polynomial))
         residual = max(abs(np.polyval(np.polyder(polynomial, order), t))
                        for order in range(3))
@@ -112,9 +142,19 @@ def main():
     })
     negative, positive, ink, cusp_colour = "#d9d9ff", "#ffe6e6", "#202020", "#a32932"
     # Match the report's text width so the plot labels retain their 12 pt size.
-    fig = plt.figure(figsize=(6.2677, 3.65))
-    ax = fig.add_axes([0.085, 0.17, 0.40, 0.687])
-    workspace = fig.add_axes([0.61, 0.14, 0.35, 0.717])
+    fig = plt.figure(figsize=(6.2677, 4.85))
+    ax = fig.add_axes([0.085, 0.35, 0.40, 0.517])
+    workspace = fig.add_axes([0.61, 0.327, 0.35, 0.54])
+    root_colours = ["#ffffff", "#dcebf2", "#a3cdb9"]
+    rho_edges = np.linspace(0, 5.8, 581)
+    z_edges = np.linspace(-3, 6.35, 936)
+    rho_grid, z_grid = np.meshgrid((rho_edges[:-1] + rho_edges[1:]) / 2,
+                                  (z_edges[:-1] + z_edges[1:]) / 2)
+    counts = real_root_counts(rho_grid, z_grid)
+    workspace.pcolormesh(rho_edges, z_edges, counts,
+                         cmap=ListedColormap(root_colours),
+                         norm=BoundaryNorm([-1, 1, 3, 5], 3),
+                         rasterized=True, shading="flat")
     extent = float(np.max(np.abs(determinant))) + 1
     ax.contourf(q2, q3, determinant, levels=[-extent, 0, extent],
                 colors=[negative, positive])
@@ -160,19 +200,37 @@ def main():
         panel.tick_params(direction="out", length=3, width=0.7, pad=3)
         for spine in panel.spines.values():
             spine.set_linewidth(0.7)
-    fig.legend(
+    legend_options = dict(frameon=False, handlelength=1.2, handletextpad=0.4,
+                          columnspacing=0.9, fontsize=11, borderaxespad=0)
+    ax.legend(
         handles=[Patch(facecolor=negative, edgecolor="#999999", label="$D<0$"),
-                 Patch(facecolor=positive, edgecolor="#999999", label="$D>0$"),
                  Line2D([], [], color=ink, linewidth=1, label="$D=0$"),
+                 Patch(facecolor=positive, edgecolor="#999999", label="$D>0$"),
                  Line2D([], [], color=cusp_colour, marker="o", markersize=3.5,
-                        linestyle="none", label="Cusps")],
-        loc="upper center", bbox_to_anchor=(0.52, 1.015), ncol=4,
-        frameon=False, handlelength=1.2, handletextpad=0.4, columnspacing=1.0,
+                        linestyle="none", label="Singular cusp preimages")],
+        loc="upper center", bbox_to_anchor=(0.285, 0.20),
+        bbox_transform=fig.transFigure, ncol=2, **legend_options,
+    )
+    root_legend = workspace.legend(
+        handles=[Patch(facecolor=colour, edgecolor="#999999", label=f"${count}$")
+                 for colour, count in zip(root_colours, [0, 2, 4])],
+        title="Number of real roots", title_fontsize=11,
+        loc="upper center", bbox_to_anchor=(0.77, 0.20),
+        bbox_transform=fig.transFigure, ncol=3, **legend_options,
+    )
+    workspace.add_artist(root_legend)
+    workspace.legend(
+        handles=[Line2D([], [], color=ink, linewidth=1,
+                        label=r"$\operatorname{disc}_t P=0$"),
+                 Line2D([], [], color=cusp_colour, marker="o", markersize=3.5,
+                        linestyle="none", label="Triple root (cusp)")],
+        loc="upper center", bbox_to_anchor=(0.77, 0.105),
+        bbox_transform=fig.transFigure, **legend_options,
     )
     out = Path(__file__).resolve().parent
-    fig.savefig(out / "singularity_map.pdf", metadata={
+    fig.savefig(out / "singularity_map.pdf", dpi=600, metadata={
         "Title": "CuRo6R arm singularities in joint space and wrist-centre workspace",
-        "Subject": "D = 0 and its wrist-centre image; four verified cusp points",
+        "Subject": "Arm factor D; IK quartic discriminant and real-root counts",
     })
     fig.savefig(out / "singularity_map.png", dpi=240)
     plt.close(fig)

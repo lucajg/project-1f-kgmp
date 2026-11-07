@@ -3,7 +3,8 @@
 `report.tex` is the standalone entry point; `report.pdf` is its compiled preview.
 The report groups the DH description, the PoE model, and their shared verification
 under **Forward kinematics models**. Separate sections cover the Jacobian and
-singularities, then analytical inverse kinematics. The DH subsection gives the parameter table and
+singularities, analytical inverse kinematics, and connectivity analysis.
+The DH subsection gives the parameter table and
 endpoint alignment. All six frame drawings are collected in
 `sections/dh_appendix.tex`, with references from the main DH section.
 The PoE section explains how the axis directions were identified in the URDF
@@ -61,27 +62,35 @@ latexmk -pdf historical_ik.tex
 plot generator now evaluate the same `q3` quartic.
 
 The main prose is in `sections/dh_parameters.tex`, `sections/poe_model.tex`,
-`sections/fk_verification.tex`, `sections/jacobian.tex`, and
-`sections/analytical_ik.tex`.
+`sections/fk_verification.tex`, `sections/jacobian.tex`,
+`sections/analytical_ik.tex`, and `sections/connectivity_linear.tex`.
 The six DH diagrams in `figures/` are
 ordinary editable TikZ sources, requiring no external images or shell escape.
 `figures/generate_dh_diagrams.py` regenerates them from shared home-frame
 geometry and a fixed projection (Python 3 with NumPy). Manual changes to the
 generated TikZ files are overwritten if that script is rerun.
 
-`figures/singularity_map.pdf` is the vector plot used in the Jacobian section;
+`figures/singularity_map.pdf` is the plot used in the Jacobian section, with
+vector curves and labels and 600 dpi root-count shading;
 `figures/singularity_map.png` is its preview. Regenerate both with
 `python3 figures/generate_singularity_map.py` (NumPy and Matplotlib).
 The plot evaluates the verified symbolic arm factor on a 1201-by-1201 grid.
-Black curves mark its zero contour; blue and pink show negative and positive
-values, matching the MATLAB explorer. The second panel maps the same curves
-to `(rho_w,z_w)`, with `rho_w = sqrt(x_w^2+y_w^2)`. This is the wrist centre,
-not the orientation-dependent tool endpoint. Corresponding labels mark four
-cusps in both panels. At `q5 = pi/2`, the arm factor equals the full Jacobian
+Each panel has its own legend. In (a), black curves mark the arm factor's zero
+contour; blue and pink show negative and positive values, matching the MATLAB
+explorer. Panel (b) maps the same curves to `(rho_w,z_w)`, with
+`rho_w = sqrt(x_w^2+y_w^2)`, and labels them as the real multiple-root locus
+of the IK quartic, `disc_t P = 0`. White, light blue and green show regions
+with zero, two and four distinct real roots, evaluated from the quartic on a
+0.01 m grid. The half-angle point at infinity is included when needed.
+For `rho_w > 0`, these counts give arm solutions before joint limits or wrist
+branches; discriminant sign alone would not distinguish zero from four roots.
+This is the wrist centre, not the orientation-dependent tool endpoint.
+Corresponding labels mark four cusps and their joint-space preimages.
+At `q5 = pi/2`, the arm factor equals the full Jacobian
 determinant. The generator checks the periodic boundaries, the residual along
 the interpolated contour, and the triple-root conditions of the IK quartic at
 the stored cusp configurations. The largest normalised triple-root residual
-is 4.00e-15 for the current `q3` quartic; the third derivative is nonzero at all four points. Cusp locations
+is 4.61e-15 for the current `q3` quartic; the third derivative is nonzero at all four points. Cusp locations
 were obtained numerically from `D=0` and
 `grad(D) dot (dz_w/dq3, -dz_w/dq2) = 0`; the polynomial check rejects stationary
 height points that also satisfy these equations but are not cusps.
@@ -97,6 +106,33 @@ standalone page header.
 Include `sections/dh_appendix.tex` after `\appendix` to retain the full drawing
 sequence and resolve the main section's appendix reference. The appendix also
 uses the `\DHPanel` macro defined in the preamble.
+
+## Connectivity analysis
+
+`sections/connectivity_linear.tex` is the first subsection of the connectivity
+analysis, leaving room for a second method. It connects two full-pose IK
+solutions using linear interpolation of joints 1--3 and continuation of the
+initial wrist sign at fixed tool orientation. The numerical example uses the
+active `Matlab/planning/path_between_to_ik_solutions.m`; its arm map follows
+the construction in `Matlab/singularity`. The report uses the existing
+Jacobian section's sign convention, `D = -det(J_arm)`.
+
+Reproduce the numerical results from the repository root with MATLAB:
+
+```matlab
+addpath('report/figures');
+export_connectivity_linear;
+```
+
+This validates 10,000 samples, independently checks every sample with DH,
+and writes `figures/connectivity_linear_data.json`. The data file retains
+the full-grid extrema and 1,001 samples for plotting. Render the four-panel
+figure with `python3 report/figures/generate_connectivity_linear.py`, then
+compile the report as above. The figure includes the projected arm segment
+and all endpoint wrist signs, the closed tool path, all six joint paths,
+and the full-Jacobian and joint-limit margins. Validation is numerical on
+the sample grid; the text does not claim an interval-wide certificate or
+global disconnection when a straight segment fails.
 
 ## Analytical IK illustration preview
 

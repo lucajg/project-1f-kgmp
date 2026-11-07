@@ -46,6 +46,9 @@
 }
 \begin{document}
 \section{Forward kinematics models}
+In this section, we present the forward kinematics model we obtained for our CuRo6R robot 
+using Denavit--Hartenberg parameters and also using Product of Exponentials. We also 
+show numerical agreement between the two models. 
 \label{sec:fk-models}
 \providecommand{\DHSectionFile}{sections/dh_parameters.tex}
 \input{\DHSectionFile}
@@ -57,6 +60,13 @@
 \input{\JacobianSectionFile}
 \providecommand{\AnalyticalIKSectionFile}{sections/analytical_ik.tex}
 \input{\AnalyticalIKSectionFile}
+
+\section{Connectivity analysis}
+\label{sec:connectivity}
+A nonsingular change of solution returns the tool to its initial pose while leaving the
+robot in a different joint configuration and keeping the full pose regular throughout the motion.
+In this section, we show how a nonsingular change of solution can be achieved.
+\input{sections/connectivity_linear.tex}
 
 \clearpage
 \appendix

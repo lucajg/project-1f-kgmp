@@ -62,11 +62,15 @@ close to losing rank.
 \centering
 \includegraphics[width=\linewidth]{figures/singularity_map.pdf}
 \captionsetup{hypcap=false}
-\captionof{figure}{Arm singularities in joint space (left) and the
-wrist-centre workspace (right), with $\rho_w=\sqrt{x_w^2+y_w^2}$.
-Black curves show $D=0$ and its image under forward kinematics;
-the colours on the left give the sign of $D$.
-Matching labels mark four cusps, where three arm IK solutions coincide.
+\captionof{figure}{Arm singularities in (a) joint space and (b) the
+wrist-centre workspace, with $\rho_w=\sqrt{x_w^2+y_w^2}$.
+In (a), colours give the sign of the arm Jacobian factor $D$ and black
+curves show $D=0$. In (b), these curves map to real multiple roots of the
+IK quartic $P(t)$ in \eqref{eq:ik-quartic}, where
+$\operatorname{disc}_t P=0$. Colours give the number of distinct real roots
+away from the curves, including the half-angle point at infinity when needed;
+for $\rho_w>0$, this is the number of arm solutions before joint limits.
+Matching labels mark four cusps (triple roots) and their joint-space preimages.
 They show that the robot's positioning chain is cuspidal: it can change
 between IK solutions without crossing an arm singularity.
 Opposite joint-space edges match modulo $2\pi$; wrist singularities remain
