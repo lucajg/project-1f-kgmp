@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import numpy as np
 
-from generate_singularity_map import arm_factor
+from generate_singularity_map import arm_determinant
 
 
 def main():
@@ -33,10 +33,10 @@ def main():
     high = np.minimum(np.pi, all_points.max(axis=1) + .35)
     q2, q3 = np.meshgrid(np.linspace(low[0], high[0], 601),
                          np.linspace(low[1], high[1], 601))
-    factor = arm_factor(q2, q3)
-    ax.contourf(q2, q3, factor, [-100, 0, 100],
+    determinant = arm_determinant(q2, q3)
+    ax.contourf(q2, q3, determinant, [-100, 0, 100],
                 cmap=ListedColormap(['#E2EFF8', '#F8E3E9']))
-    ax.contour(q2, q3, factor, [0], colors='#243747', linewidths=.8)
+    ax.contour(q2, q3, determinant, [0], colors='#243747', linewidths=.8)
     ax.plot(q[1], q[2], color=green, lw=1.6, zorder=4)
     k = len(s)//2
     ax.annotate('', xy=q[1:3, k+40], xytext=q[1:3, k-40],

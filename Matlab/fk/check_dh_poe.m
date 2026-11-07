@@ -5,6 +5,7 @@ function check_dh_poe
 poe_model = poe_data();
 dh_model = dh_data();
 urdf_data;
+check_urdf_source(urdf_model);
 n = dh_model.n;
 names = {'DH', 'PoE', 'URDF'};
 models = {dh_model, poe_model, urdf_model};
@@ -81,6 +82,41 @@ for j = 1:size(pairs,1)
     fprintf('%-12s %12.3e %16.3e %14.3e\n', pair_name, max_error(j,:));
 end
 fprintf('Maximum PoE-URDF joint-origin error: %.3e m\n', max_origin_error);
+end
+
+function check_urdf_source(model)
+% Check the transcription against the supplied file without changing it.
+root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+document = xmlread(fullfile(root,'CuRo6R','CuRo6R.urdf'));
+joints = document.getElementsByTagName('joint');
+names = cell(1,joints.getLength);
+for k = 1:numel(names)
+    names{k} = char(joints.item(k-1).getAttribute('name'));
+end
+links = {'base_link','link_1','link_2','link_3_d3','link_4','link_5','link_6'};
+for k = 1:model.n
+    index = find(strcmp(names,sprintf('joint_%d',k)));
+    assert(isscalar(index),'Expected exactly one URDF joint_%d.',k);
+    joint = joints.item(index-1);
+    assert(strcmp(char(joint.getAttribute('type')),'revolute'));
+    parent = joint.getElementsByTagName('parent').item(0);
+    child = joint.getElementsByTagName('child').item(0);
+    assert(strcmp(char(parent.getAttribute('link')),links{k}) ...
+        && strcmp(char(child.getAttribute('link')),links{k+1}), ...
+        'URDF chain differs at joint_%d.',k);
+    origin = joint.getElementsByTagName('origin').item(0);
+    axis = joint.getElementsByTagName('axis').item(0);
+    xyz = sscanf(char(origin.getAttribute('xyz')),'%f');
+    rpy = sscanf(char(origin.getAttribute('rpy')),'%f');
+    direction = sscanf(char(axis.getAttribute('xyz')),'%f');
+    % Allow the URDF's decimal truncation of pi/6 (about 8.3e-12 rad).
+    assert(numel(xyz)==3 && numel(rpy)==3 && numel(direction)==3 ...
+        && norm(xyz-model.xyz(:,k),inf) < 1e-10 ...
+        && norm(rpy-model.rpy(:,k),inf) < 1e-10 ...
+        && norm(direction-model.axis(:,k),inf) < 1e-10, ...
+        'MATLAB URDF data differs from the source at joint_%d.',k);
+end
+fprintf('URDF transcription agrees with the source file (tolerance 1e-10).\n');
 end
 
 function check_poe_prefixes(poe,dh,urdf,Q)

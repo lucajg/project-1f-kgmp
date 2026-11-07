@@ -17,8 +17,8 @@ end
 map = singularity_map_data(poe_model,241);
 positive_color = [0 .45 .70];
 negative_color = [.85 .33 .10];
-arm_negative_color = [.90 .88 .97];
-arm_positive_color = [1 .94 .80];
+arm_negative_color = [.85 .85 1];
+arm_positive_color = [1 .90 .90];
 wrist_signs = sign(sin(Q_ik(5,:)));
 wrist_signs(abs(sin(Q_ik(5,:))) <= 1e-10) = 0;
 
@@ -33,17 +33,16 @@ end
 hold(ax,'on');
 
 % Shade the arm regions using the same determinant convention as the planner.
-% The cached map stores D = -det(J_arm), with q5 = pi/2.
-arm_det_map = -map.detJ;
+arm_det_map = map.arm_det;
 det_limit = max(abs(arm_det_map(:)));
 contourf(ax,map.angles,map.angles,arm_det_map,[-det_limit 0 det_limit], ...
     'LineStyle','none','HandleVisibility','off');
 colormap(ax,[arm_negative_color; arm_positive_color]);
 clim(ax,[-det_limit det_limit]);
 patch(ax,nan,nan,arm_negative_color,'EdgeColor','none', ...
-    'DisplayName','det(J_{arm}) < 0');
+    'DisplayName','det(J_{v,arm}) < 0');
 patch(ax,nan,nan,arm_positive_color,'EdgeColor','none', ...
-    'DisplayName','det(J_{arm}) > 0');
+    'DisplayName','det(J_{v,arm}) > 0');
 
 plot(ax,map.arm(1,:),map.arm(2,:),'k','LineWidth',1.2, ...
     'DisplayName','Arm singularities');

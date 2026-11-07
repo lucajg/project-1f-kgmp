@@ -3,7 +3,7 @@
 Run from any directory. Requires NumPy and Matplotlib. The PDF keeps curves
 and text as vectors, with raster root-count shading; the PNG is a preview.
 The formula and dimensions
-match notes/jacobian_detailed.tex and Matlab/models/robot_dimensions.m.
+match sections/jacobian.tex and Matlab/models/robot_dimensions.m.
 """
 
 from pathlib import Path
@@ -18,14 +18,14 @@ from matplotlib.colors import BoundaryNorm, ListedColormap
 import numpy as np
 
 
-def arm_factor(q2, q3):
-    """D(q2,q3), where det(J) = sin(q5) D, for the supplied CuRo6R."""
+def arm_determinant(q2, q3):
+    """det(J_v_arm), where det(J) = -sin(q5) det(J_v_arm), for CuRo6R."""
     a1, a2, d2, d3, d4 = 4 / 5, 2, 5 / 4, 3 / 4, 5 / 2
     s2, c2, s3, c3 = np.sin(q2), np.cos(q2), np.sin(q3), np.cos(q3)
     u = a2 + d4 * c3
     x = u * c2 + d3 * s2
     z = -u * s2 + d3 * c2
-    return d4 / 2 * (
+    return -d4 / 2 * (
         a1 * z * c3
         - np.sqrt(3) * a1 * u * s3
         - np.sqrt(3) * x * (a2 * s3 - d2 * c3)
@@ -95,7 +95,7 @@ def real_root_counts(rho, z):
 def verified_cusps():
     """Four numerically located cusps, checked through the arm IK quartic.
 
-    These were located by solving D=0 and grad(D).(z_q3,-z_q2)=0.
+    These solve det(J_v_arm)=0 and grad(det(J_v_arm)).(z_q3,-z_q2)=0.
     A stationary z can also satisfy these equations without being a cusp.
     Checking P=P'=P''=0 and P''' != 0 rejects such false candidates.
     The polynomial coefficients below are in descending powers of tan(q3/2),
@@ -110,7 +110,7 @@ def verified_cusps():
     ])
     max_residual = 0.0
     for q2, q3 in cusps:
-        assert abs(arm_factor(q2, q3)) < 1e-10
+        assert abs(arm_determinant(q2, q3)) < 1e-10
         x, y, z = wrist_position(q2, q3)
         t = np.tan(q3 / 2)
         polynomial = quartic_coefficients(np.hypot(x, y), z)
@@ -126,7 +126,7 @@ def verified_cusps():
 def main():
     angles = np.linspace(-np.pi, np.pi, 1201)
     q2, q3 = np.meshgrid(angles, angles)
-    determinant = arm_factor(q2, q3)
+    determinant = arm_determinant(q2, q3)
     assert np.allclose(determinant[:, 0], determinant[:, -1], atol=1e-12)
     assert np.allclose(determinant[0, :], determinant[-1, :], atol=1e-12)
 
@@ -161,7 +161,7 @@ def main():
     curves = ax.contour(q2, q3, determinant, levels=[0], colors=[ink],
                         linewidths=1.0)
     residual = max(
-        float(np.max(np.abs(arm_factor(segment[:, 0], segment[:, 1]))))
+        float(np.max(np.abs(arm_determinant(segment[:, 0], segment[:, 1]))))
         for segment in curves.allsegs[0] if len(segment)
     )
     assert residual < 3e-4, f"Contour interpolation residual: {residual}"
@@ -203,18 +203,21 @@ def main():
     legend_options = dict(frameon=False, handlelength=1.2, handletextpad=0.4,
                           columnspacing=0.9, fontsize=11, borderaxespad=0)
     ax.legend(
-        handles=[Patch(facecolor=negative, edgecolor="#999999", label="$D<0$"),
-                 Line2D([], [], color=ink, linewidth=1, label="$D=0$"),
-                 Patch(facecolor=positive, edgecolor="#999999", label="$D>0$"),
+        handles=[Patch(facecolor=negative, edgecolor="#999999",
+                       label=r"$\det(J_{v,\mathrm{arm}})<0$"),
+                 Line2D([], [], color=ink, linewidth=1,
+                        label=r"$\det(J_{v,\mathrm{arm}})=0$ (arm singularities)"),
+                 Patch(facecolor=positive, edgecolor="#999999",
+                       label=r"$\det(J_{v,\mathrm{arm}})>0$"),
                  Line2D([], [], color=cusp_colour, marker="o", markersize=3.5,
                         linestyle="none", label="Singular cusp preimages")],
-        loc="upper center", bbox_to_anchor=(0.285, 0.20),
-        bbox_transform=fig.transFigure, ncol=2, **legend_options,
+        loc="upper center", bbox_to_anchor=(0.285, 0.22),
+        bbox_transform=fig.transFigure, ncol=1, **legend_options,
     )
     root_legend = workspace.legend(
         handles=[Patch(facecolor=colour, edgecolor="#999999", label=f"${count}$")
                  for colour, count in zip(root_colours, [0, 2, 4])],
-        title="Number of real roots", title_fontsize=11,
+        title=r"Number of real roots of $P(t)$", title_fontsize=11,
         loc="upper center", bbox_to_anchor=(0.77, 0.20),
         bbox_transform=fig.transFigure, ncol=3, **legend_options,
     )
@@ -230,7 +233,7 @@ def main():
     out = Path(__file__).resolve().parent
     fig.savefig(out / "singularity_map.pdf", dpi=600, metadata={
         "Title": "CuRo6R arm singularities in joint space and wrist-centre workspace",
-        "Subject": "Arm factor D; IK quartic discriminant and real-root counts",
+        "Subject": "Arm Jacobian determinant; IK quartic discriminant and real-root counts",
     })
     fig.savefig(out / "singularity_map.png", dpi=240)
     plt.close(fig)

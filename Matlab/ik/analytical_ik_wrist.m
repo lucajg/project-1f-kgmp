@@ -12,6 +12,9 @@ if nargin < 4
     singular_tol = 1e-10;
 end
 validateattributes(R_d,{'numeric'},{'real','finite','size',[3,3]});
+if norm(R_d.'*R_d-eye(3),'fro') > 1e-8 || det(R_d) < 0
+    error('analytical_ik_wrist:InvalidRotation','R_d must be a proper rotation matrix.');
+end
 validateattributes(singular_tol,{'numeric'},{'scalar','real','finite','nonnegative'});
 
 [~,~,~,F0] = poe_fk(q_arm,poe_model,3);

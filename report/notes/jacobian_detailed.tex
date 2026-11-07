@@ -2,7 +2,7 @@
 
 The physical link-3 frame has home orientation $R_x(\pi/6)$ and follows
 the first three joint motions. In its axes, the wrist columns are
-$e_x$, $R_x(q_4)e_z$, and $R_x(q_4)R_z(q_5)e_x$, giving the block $B$
+$e_x$, $R_x(q_4)e_z$, and $R_x(q_4)R_z(q_5)e_x$, giving the block $J_{\omega,\mathrm{wrist}}$
 in \eqref{eq:jacobian-wrist}.
 
 \textbf{How the intermediate PoE transforms give the axes.}
@@ -15,8 +15,8 @@ Evaluating its velocity field at $p_k$ adds $w_i\times p_k$, giving
 the upper block of \eqref{eq:jacobian-column}.
 
 \textbf{Why the determinant separates.}
-The zero block in \eqref{eq:jacobian-wrist} gives
-$\det({}^3J_5)=\det A\det B$, with $\det B=-\sin q_5$.
+Since $\det J_{\omega,\mathrm{wrist}}=-\sin q_5$, the block triangular form in
+\eqref{eq:jacobian-wrist} gives the factorization \eqref{eq:jacobian-determinant}.
 Expressing both velocity blocks in another rotated frame multiplies the
 Jacobian by $\operatorname{diag}(R^T,R^T)$, whose determinant is one.
 If $d=p_\ell-p_j$, changing the velocity reference gives
@@ -42,7 +42,7 @@ At $q_1=0$, the wrist centre is
 \end{equation}
 Changing $q_1$ rotates this point about the base $z$-axis, leaving
 $(\rho_w,z_w)$ unchanged. The right panel of
-Figure~\ref{fig:arm-singularity-map} maps each point of $D=0$ through
+Figure~\ref{fig:arm-singularity-map} maps each point of $\det J_{v,\mathrm{arm}}=0$ through
 these equations. It shows the wrist centre, whose position depends on
 joints 1--3. The tool endpoint also depends on the wrist orientation
 through $p_E=p_w+d_6R_Ee_x$.

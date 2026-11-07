@@ -62,6 +62,8 @@ Before adding joint `i`'s motion, `F` contains only joints `1,...,i-1`. Its rota
 
 ## Checks
 
+The check first reads `CuRo6R/CuRo6R.urdf` and compares the six joint placements, axes, and parent/child links with `urdf_data.m`. A tolerance of `1e-10` permits the URDF's decimal truncation of `pi/6`; the file is never modified.
+
 **[check_dh_poe.m](check_dh_poe.m)** rebuilds all three models and compares DH-PoE, DH-URDF, and PoE-URDF at 514 configurations. The columns of `Q` contain the home pose, 12 individual joint motions (each joint at `+pi/2` and `-pi/2`, with the others zero), one mixed pose, and 500 random joint vectors with angles between `-pi` and `pi`. A local random stream with seed 42 makes the samples repeatable without changing MATLAB's global random stream. Each loop iteration sends the same column of `Q` to all three FK functions; the third dimension of `T`, `p`, and `w` selects the model.
 
 For each configuration and model pair, it measures three errors. Taking DH-PoE as an example: `norm(T_dh-T_poe,'fro')` compares the complete endpoint poses, `norm(w_dh-w_poe,'fro')` compares joint-axis directions, and `norm(cross(p_dh-p_poe,w_poe,1),'fro')` compares axis locations. The Frobenius norm is the square root of the sum of squared matrix entries. The cross product is taken separately for each column: a displacement parallel to an axis has zero cross product with that axis. Since `w_poe` is a unit vector, each cross-product magnitude is the perpendicular distance to the PoE axis line. Together with equal directions, zero distance means the two representations describe the same axis, even when their chosen origins differ. A separate check compares PoE and URDF joint origins directly, since these physical origins should coincide.

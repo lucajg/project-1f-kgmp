@@ -10,7 +10,7 @@ free to move between the endpoints.
 For the initial configuration $\qq^A$ below, the analytical solver returns
 eight solutions of $T_d=\operatorname{FK}(\qq^A)$.
 Equation~\eqref{eq:jacobian-determinant} gives two necessary conditions for
-a regular connection: the arm factor $D$ and the wrist factor $\sin q_5$
+a regular connection: $\det J_{v,\mathrm{arm}}$ and the wrist factor $\sin q_5$
 must each retain their sign. Equal signs alone do not establish connectivity;
 the path between the endpoints must still be checked.
 After removing the initial solution and screening the signs and endpoint
@@ -49,7 +49,8 @@ Thus a straight arm segment produces a closed, curved workspace path.
 \includegraphics[width=\linewidth]{figures/connectivity_linear.pdf}
 \captionsetup{hypcap=false}
 \captionof{figure}{A fixed-orientation change from $A=8^-$ to $B=4^-$.
-In (a), black curves are $D=0$; blue and pink denote $D<0$ and $D>0$.
+In (a), black curves are $\det J_{v,\mathrm{arm}}=0$; blue and pink denote
+negative and positive values, respectively.
 Each arm point carries both wrist signs, shown by a circle ($+$) and square
 ($-$). The green segment stays in one regular arm region.
 Panels (b)--(d) show the tool loop, all six joint paths, and the sampled margins.}

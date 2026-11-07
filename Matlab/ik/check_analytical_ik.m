@@ -89,6 +89,16 @@ assert(is_singular && isequal(size(wrist),[3,1]));
 [wrist, is_singular] = analytical_ik_wrist(source(1:3),target(1:3,1:3),pm,1e-7);
 assert(~is_singular && isequal(size(wrist),[3,2]));
 
+% Finite 3-by-3 matrices must also be proper rotations.
+for rotation = {zeros(3), diag([2,1,1]), diag([-1,1,1])}
+    try
+        analytical_ik_wrist(source(1:3),rotation{1},pm);
+        error('check_analytical_ik:MissingError','Accepted an invalid rotation.');
+    catch err
+        assert(strcmp(err.identifier,'analytical_ik_wrist:InvalidRotation'));
+    end
+end
+
 bad = eye(4); bad(1,1) = 2;
 for solver = {@analytical_ik_3r, @analytical_ik_6r}
     try

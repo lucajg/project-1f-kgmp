@@ -74,8 +74,8 @@ generated TikZ files are overwritten if that script is rerun.
 vector curves and labels and 600 dpi root-count shading;
 `figures/singularity_map.png` is its preview. Regenerate both with
 `python3 figures/generate_singularity_map.py` (NumPy and Matplotlib).
-The plot evaluates the verified symbolic arm factor on a 1201-by-1201 grid.
-Each panel has its own legend. In (a), black curves mark the arm factor's zero
+The plot evaluates the verified symbolic arm determinant `det(J_v_arm)` on a 1201-by-1201 grid.
+Each panel has its own legend. In (a), black curves mark the arm determinant's zero
 contour; blue and pink show negative and positive values, matching the MATLAB
 explorer. Panel (b) maps the same curves to `(rho_w,z_w)`, with
 `rho_w = sqrt(x_w^2+y_w^2)`, and labels them as the real multiple-root locus
@@ -86,13 +86,13 @@ For `rho_w > 0`, these counts give arm solutions before joint limits or wrist
 branches; discriminant sign alone would not distinguish zero from four roots.
 This is the wrist centre, not the orientation-dependent tool endpoint.
 Corresponding labels mark four cusps and their joint-space preimages.
-At `q5 = pi/2`, the arm factor equals the full Jacobian
-determinant. The generator checks the periodic boundaries, the residual along
+The full Jacobian determinant is `-sin(q5)*det(J_v_arm)`; at `q5 = pi/2`
+it is the negative of the plotted arm determinant. The generator checks the periodic boundaries, the residual along
 the interpolated contour, and the triple-root conditions of the IK quartic at
 the stored cusp configurations. The largest normalised triple-root residual
 is 4.61e-15 for the current `q3` quartic; the third derivative is nonzero at all four points. Cusp locations
-were obtained numerically from `D=0` and
-`grad(D) dot (dz_w/dq3, -dz_w/dq2) = 0`; the polynomial check rejects stationary
+were obtained numerically from `det(J_v_arm)=0` and
+`grad(det(J_v_arm)) dot (dz_w/dq3, -dz_w/dq2) = 0`; the polynomial check rejects stationary
 height points that also satisfy these equations but are not cusps.
 The wrist-position formula was also checked against direct PoE evaluation at
 100 reproducible random configurations and the four cusp configurations;
@@ -114,8 +114,8 @@ analysis, leaving room for a second method. It connects two full-pose IK
 solutions using linear interpolation of joints 1--3 and continuation of the
 initial wrist sign at fixed tool orientation. The numerical example uses the
 active `Matlab/planning/path_between_to_ik_solutions.m`; its arm map follows
-the construction in `Matlab/singularity`. The report uses the existing
-Jacobian section's sign convention, `D = -det(J_arm)`.
+the construction in `Matlab/singularity`. The report and MATLAB plots all
+show the sign of `det(J_v_arm)`, with blue negative and pink positive.
 
 Reproduce the numerical results from the repository root with MATLAB:
 
@@ -198,7 +198,10 @@ corresponding DH joint-axis lines. The checks concern the DH section only.
 
 The PoE screw data were checked symbolically, then the PoE, DH and direct URDF
 forward models were compared at 514 configurations. The detailed verification subsection
-records the configuration set and residuals. The successive-origin formulas in
+records the configuration set and residuals. The MATLAB transcription uses
+exact `pi/6` and is checked against the source URDF with a `1e-10` tolerance
+for decimal truncation; the earlier direct-file comparison above used the
+literal decimal roll. The successive-origin formulas in
 the compact section were also checked to reproduce all six table entries exactly.
 
 The Jacobian section was checked with `check_jacobians(false)`: 114 configurations,

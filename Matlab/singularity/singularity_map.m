@@ -37,7 +37,7 @@ try
         'DefaultAxesFontSize',10*fontScale,'DefaultTextFontSize',10*fontScale, ...
         'DefaultUicontrolInterruptible','off','DefaultUicontrolBusyAction','cancel');
     armAxes = axes(fig,'Position',[.065 .43 .39 .44],'Tag','arm-map');
-    imagesc(armAxes,map.angles,map.angles,map.detJ > 0);
+    imagesc(armAxes,map.angles,map.angles,map.arm_det > 0);
     set(armAxes,'YDir','normal','CLim',[0 1]);
     colormap(armAxes,[.85 .85 1; 1 .90 .90]);  % Preserve the soft sign colors.
     hold(armAxes,'on');
@@ -47,8 +47,8 @@ try
     labels = {'-\pi','-\pi/2','0','\pi/2','\pi'};
     set(armAxes,'XTick',ticks,'YTick',ticks,'XTickLabel',labels,'YTickLabel',labels);
     xlabel(armAxes,'q_2 (rad)'); ylabel(armAxes,'q_3 (rad)');
-    title(armAxes,{'Arm factor: det(J) = D(q_2,q_3) sin(q_5)', ...
-        'Blue: D < 0     Pink: D > 0'});
+    title(armAxes,{'Arm determinant: det(J_{v,arm})', ...
+        'Blue: negative     Pink: positive'});
     marks = gobjects(1,8); numbers = gobjects(1,8);
     for marker = 1:8
         marks(marker) = plot(armAxes,nan,nan,'o','Color',colors(marker,:), ...
@@ -216,7 +216,7 @@ end
             xlim(workspaceAxes,[0,max(reach,1.05*rho)]);
         end
         workspaceTitle.String = {'Wrist-center workspace', ...
-            sprintf('Target azimuth = %.1f deg; black: D = 0',azimuth*180/pi)};
+            sprintf('Target azimuth = %.1f deg; black: det(J_{v,arm}) = 0',azimuth*180/pi)};
         if isempty(active)
             status.String = 'Unreachable pose: no IK solutions. Move the pose back into reach.';
             target.MarkerFaceColor = [.85 .25 .2];

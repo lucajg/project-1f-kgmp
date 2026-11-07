@@ -56,6 +56,8 @@ simplify(expand(blkdiag(C,C)*Jdh_sym - Jpoe_sym)) % A 6 x 6 zero matrix.
 
 Here `C` converts DH frame-3 components to physical link-3 components. The relative rotation is constant because both frames follow the same first three joint motions. For any common reference point, compare the Jacobians in matching axes; direct equality applies in frame 0.
 
+At the wrist center, the report calls `J(1:3,1:3)` the arm's linear block `J_v_arm`, `J(4:6,1:3)` its angular block `J_omega_arm`, and `J(4:6,4:6)` the wrist's angular block `J_omega_wrist`. The planner's local variable `J_arm` denotes the same linear arm block.
+
 **[dh_jacobian_symbolic.m](dh_jacobian_symbolic.m)** and **[poe_jacobian_symbolic.m](poe_jacobian_symbolic.m)** are short entry scripts using these same functions; edit `k` and `f` to select the point and expression frame. They produce `Jdh_sym` and `Jpoe_sym` in the shared dimension symbols, plus `Jdh_ad_sym` and `Jpoe_ad_sym` in DH parameters. Their model and joint variables remain separate from the numerical examples.
 
 **[dh_parameter_form.m](dh_parameter_form.m)** rewrites symbolic expressions using `a1 = l2`, `a2 = l3`, `d1 = h1+h2`, `d2 = w3`, `d3 = h4`, `d4 = l4+l5`, and `d6 = l6`. Zero DH entries and fixed angles retain their values. The substitution keeps `h1` and `l4` available because the DH table does not determine the individual splits of `d1` and `d4`; these residual dimensions cancel from the Jacobians at points 5 and 6. Other physical origins may still need them. A DH parameter can also disappear from the Jacobian: `d1` only translates this robot vertically and does not affect its velocity mapping.
