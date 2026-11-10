@@ -7,18 +7,18 @@ adjust the wrist to keep the tool orientation fixed. The tool position is
 free to move between the endpoints.
 
 \textbf{Selecting a candidate pair.}
-For the initial configuration $\qq^A$ below, the analytical solver returns
-eight solutions of $T_d=\operatorname{FK}(\qq^A)$.
+For the initial configuration $\vect{q}^A$ below, the analytical solver returns
+eight solutions of $T_d=\operatorname{FK}(\vect{q}^A)$.
 Equation~\eqref{eq:jacobian-determinant} gives two necessary conditions for
 a regular connection: $\det J_{v,\mathrm{arm}}$ and the wrist factor $\sin q_5$
 must each retain their sign. Equal signs alone do not establish connectivity;
 the path between the endpoints must still be checked.
 After removing the initial solution and screening the signs and endpoint
-margins, one candidate remains, $\qq^B$. In radians,
+margins, one candidate remains, $\vect{q}^B$. In radians,
 \begin{equation}
  \begin{aligned}
- (\qq^A)^\trans&=(\phantom{-}0.1024,\;-1.1124,\;\phantom{-}1.8547,\;-1.4399,\;-0.3835,\;-2.6486),\\
- (\qq^B)^\trans&\simeq(-2.2287,\;-2.1482,\;-0.2788,\;\phantom{-}0.6181,\;-0.3524,\;-1.7072).
+ (\vect{q}^A)^\trans&=(\phantom{-}0.1024,\;-1.1124,\;\phantom{-}1.8547,\;-1.4399,\;-0.3835,\;-2.6486),\\
+ (\vect{q}^B)^\trans&\simeq(-2.2287,\;-2.1482,\;-0.2788,\;\phantom{-}0.6181,\;-0.3524,\;-1.7072).
  \end{aligned}
  \label{eq:connectivity-endpoints}
 \end{equation}
@@ -26,21 +26,21 @@ These are solutions $8^-$ and $4^-$ in Figure~\ref{fig:connectivity-linear};
 the superscript denotes $\operatorname{sign}(\sin q_5)$.
 
 \textbf{From the arm segment to the full motion.}
-Writing $\qq_a=(q_1,q_2,q_3)^\trans$, we prescribe
+Writing $\vect{q}_a=(q_1,q_2,q_3)^\trans$, we prescribe
 \begin{equation}
- \qq_a(s)=(1-s)\qq_a^A+s\qq_a^B,\qquad 0\leq s\leq1,
+ \vect{q}_a(s)=(1-s)\vect{q}_a^A+s\vect{q}_a^B,\qquad 0\leq s\leq1,
  \label{eq:connectivity-arm-segment}
 \end{equation}
 where $s$ is a path advancement parameter. At each sample, we compute
-$({}^0R_3(\qq_a(s)))^\trans R_d$ and recover $q_4,q_5,q_6$ using
+$({}^0R_3(\vect{q}_a(s)))^\trans R_d$ and recover $q_4,q_5,q_6$ using
 \eqref{eq:ik-wrist-solutions}, always choosing the initial wrist sign.
 The angles are unwrapped towards the previous sample before testing
 $-\pi\leq q_i\leq\pi$; wrapping an angle back into this interval would hide
 a physical joint-limit crossing.
-With $\vect p_C$ the wrist centre, the resulting tool path is
-$\vect p_6(s)=\vect p_C(\qq_a(s))+d_6R_d\ex$.
+With $\vect{p}_C$ the wrist centre, the resulting tool path is
+$\vect{p}_6(s)=\vect{p}_C(\vect{q}_a(s))+d_6R_d\vect{e}_x$.
 Both arm endpoints reach the same wrist centre, so
-$\vect p_6(1)=\vect p_6(0)$, although $\qq(1)\ne\qq(0)$.
+$\vect{p}_6(1)=\vect{p}_6(0)$, although $\vect{q}(1)\ne\vect{q}(0)$.
 Thus a straight arm segment produces a closed, curved workspace path.
 
 \begin{center}

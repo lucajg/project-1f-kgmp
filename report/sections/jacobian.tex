@@ -3,13 +3,13 @@
 
 In this section we construct the geometric Jacobian of CuRo6R from the PoE model.
 The MATLAB PoE code keeps the intermediate transforms. These give each
-joint's current unit direction $w_i$ and a point $p_i$ on its axis, both in
-\texttt{base\_link}. The current axis direction $w_i(q)$ is obtained by
-rotating the home direction $\omega_i$ through the preceding joint motions.
+joint's current unit direction $\vect{w}_i$ and a point $\vect{p}_i$ on its axis, both in
+\texttt{base\_link}. The current axis direction $\vect{w}_i(\vect{q})$ is obtained by
+rotating the home direction $\vect{\omega}_i$ through the preceding joint motions.
 For a revolute joint, the Jacobian column is
 \begin{equation}
  {}^0J_k(:,i)=
- \begin{pmatrix}w_i\times(p_k-p_i)\\w_i\end{pmatrix},
+ \begin{pmatrix}\vect{w}_i\times(\vect{p}_k-\vect{p}_i)\\\vect{w}_i\end{pmatrix},
  \qquad i=1,\ldots,6.
  \label{eq:jacobian-column}
 \end{equation}
@@ -21,7 +21,7 @@ same tool motion to the wrist centre.
 Here ${}^3J_5$ denotes this full Jacobian at the wrist centre, expressed
 along the physical link-3 axes (\texttt{link\_3\_d3}). Both velocity blocks are rotated by
 $({}^0R_3)^T$; the velocities remain relative to the base.
-All three wrist axes pass through $p_5$, so their linear columns vanish.
+All three wrist axes pass through $\vect{p}_5$, so their linear columns vanish.
 With $c_i=\cos q_i$ and $s_i=\sin q_i$, the result has the form
 \begin{equation}
  {}^3J_5=\begin{pmatrix}J_{v,\mathrm{arm}}&0\\J_{\omega,\mathrm{arm}}&J_{\omega,\mathrm{wrist}}\end{pmatrix},\qquad
@@ -41,7 +41,7 @@ at the wrist centre is zero.
 We obtain an exact symbolic expression of ${}^3J_5$ in MATLAB, from which the determinant is extracted.
 The zero block of $J={}^3J_5$ makes the determinant easy to evaluate:
 \begin{equation}
- \det J(q)=-\sin q_5\,\det J_{v,\mathrm{arm}}(q_2,q_3).
+ \det J(\vect{q})=-\sin q_5\,\det J_{v,\mathrm{arm}}(q_2,q_3).
  \label{eq:jacobian-determinant}
 \end{equation}
 Using the DH lengths, define $U=a_2+d_4c_3$, $X=Uc_2+d_3s_2$, and

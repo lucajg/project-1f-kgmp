@@ -5,9 +5,9 @@ The DH and PoE models were compared at 514 configurations: home, each joint
 alone at $\pm\pi/2$, one mixed pose, and 500 uniformly sampled configurations
 in $[-\pi,\pi]^6$ (random seed 42). At each configuration,
 we computed the full pose Frobenius residual
-$\lVert\Delta T\rVert_F=\sqrt{\lVert\Delta p\rVert_2^2+\lVert\Delta R\rVert_F^2}$,
+$\lVert\Delta T\rVert_F=\sqrt{\lVert\Delta\vect{p}\rVert_2^2+\lVert\Delta R\rVert_F^2}$,
 where $\Delta$ denotes the difference between the models,
-$\lVert\Delta p\rVert_2$ is the Euclidean position residual (positions in metres),
+$\lVert\Delta\vect{p}\rVert_2$ is the Euclidean position residual (positions in metres),
 and $\lVert\Delta R\rVert_F$ is the Frobenius rotation-matrix residual.
 The maximum full pose residual was below $10^{-14}$, consistent with
 floating-point roundoff.

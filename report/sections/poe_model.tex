@@ -2,16 +2,17 @@
 \label{sec:poe}
 
 The product of exponentials (PoE) model uses the joint axes at the home
-configuration $q=0$. For each joint, $\omega_i$ is its unit axis direction
-and $r_i$ is its physical origin. All vectors are expressed in
+configuration $\vect{q}=\vect{0}$. For each joint, $\vect{\omega}_i$ is its unit axis direction
+and $\vect{r}_i$ is its physical origin. All vectors are expressed in
 \texttt{base\_link}; the endpoint is \texttt{link\_6}, as in the DH model.
 
 \textbf{Axis directions.}
 The rotation axes were identified visually in a URDF view at home.
 Their positive directions follow the URDF joint convention.
-The fixed tilt $\gamma=\pi/6$ gives the sine and cosine components of the
-tilted axes. In particular, $\omega_2=R_x(\gamma)e_y$ and
-$\omega_3=\omega_5=R_x(\gamma)e_z$, where $e_x,e_y,e_z$ are the base unit vectors.
+Let $\vect{e}_x=(1,0,0)^\trans$, $\vect{e}_y=(0,1,0)^\trans$ and
+$\vect{e}_z=(0,0,1)^\trans$ denote the coordinate unit vectors.
+The fixed tilt $\gamma=\pi/6$ gives $\vect{\omega}_2=R_x(\gamma)\vect{e}_y$
+and $\vect{\omega}_3=\vect{\omega}_5=R_x(\gamma)\vect{e}_z$.
 
 \textbf{Joint origins.}
 Starting at joint 1, each origin was found by adding the relevant robot
@@ -19,23 +20,23 @@ dimensions to the preceding origin. Each offset must first be expressed
 in the base frame. With lengths in metres, this gives
 \begin{equation}
  \begin{aligned}
- r_1&=\tfrac12 e_z,
- & r_2&=r_1+\tfrac45 e_x+\tfrac12 e_z,\\
- r_3&=r_2+2e_x+\tfrac54\omega_2,
- & r_4&=r_3+\tfrac32 e_x+\tfrac34\omega_3,\\
- r_5&=r_4+e_x,
- & r_6&=r_5+\tfrac32 e_x.
+ \vect{r}_1&=\tfrac12\vect{e}_z,
+ & \vect{r}_2&=\vect{r}_1+\tfrac45\vect{e}_x+\tfrac12\vect{e}_z,\\
+ \vect{r}_3&=\vect{r}_2+2\vect{e}_x+\tfrac54\vect{\omega}_2,
+ & \vect{r}_4&=\vect{r}_3+\tfrac32\vect{e}_x+\tfrac34\vect{\omega}_3,\\
+ \vect{r}_5&=\vect{r}_4+\vect{e}_x,
+ & \vect{r}_6&=\vect{r}_5+\tfrac32\vect{e}_x.
  \end{aligned}
  \label{eq:poe-origins}
 \end{equation}
 For example, the offset from joint 2 to joint 3 combines a 2 m step along
 the base $x$ axis and a 1.25 m step along joint 2's tilted axis.
 The resulting vectors are listed in Table~\ref{tab:poe-screws}, together
-with $v_i=-\omega_i\times r_i$.
+with $\vect{v}_i=-\vect{\omega}_i\times\vect{r}_i$.
 
 \begin{table}[!ht]
 \centering
-\caption{Home screw data. Each vector is written as a row; $r_i$ uses the physical
+\caption{Home screw data. Each vector is written as a row; $\vect{r}_i$ uses the physical
 joint origin. Lengths are in metres.}
 \label{tab:poe-screws}
 \small
@@ -43,7 +44,7 @@ joint origin. Lengths are in metres.}
 \renewcommand{\arraystretch}{1.55}
 \begin{tabular}{@{}c c c c@{}}
 \toprule
-$i$ & $\omega_i^T$ & $r_i^T$ & $v_i^T$ \\
+$i$ & $\vect{\omega}_i^\trans$ & $\vect{r}_i^\trans$ & $\vect{v}_i^\trans$ \\
 \midrule
 1 & $(0,0,1)$ & $(0,0,\tfrac12)$ & $(0,0,0)$ \\
 2 & $(0,\tfrac{\sqrt3}{2},\tfrac12)$ & $(\tfrac45,0,1)$
@@ -62,18 +63,18 @@ $i$ & $\omega_i^T$ & $r_i^T$ & $v_i^T$ \\
 \end{table}
 
 \textbf{Forward model.}
-Each pair $(\omega_i,v_i)$ defines a screw axis and its matrix form:
+Each pair $(\vect{\omega}_i,\vect{v}_i)$ defines a screw axis and its matrix form:
 \begin{equation}
- \xi_i=\begin{pmatrix}\omega_i\\v_i\end{pmatrix},\qquad
- \widehat\xi_i=\begin{pmatrix}[\omega_i]_\times&v_i\\0^T&0\end{pmatrix},
- \qquad [\omega_i]_\times p=\omega_i\times p.
+ \vect{\xi}_i=\begin{pmatrix}\vect{\omega}_i\\\vect{v}_i\end{pmatrix},\qquad
+ \widehat{\vect{\xi}}_i=\begin{pmatrix}[\vect{\omega}_i]_\times&\vect{v}_i\\\vect{0}^\trans&0\end{pmatrix},
+ \qquad [\vect{\omega}_i]_\times\vect{p}=\vect{\omega}_i\times\vect{p}.
  \label{eq:poe-screw}
 \end{equation}
-The endpoint has orientation $R_x(\gamma)$ and position $r_6$ at home.
+The endpoint has orientation $R_x(\gamma)$ and position $\vect{r}_6$ at home.
 This gives its home pose $M$ and the complete forward kinematics:
 \begin{equation}
- M=\begin{pmatrix}R_x(\gamma)&r_6\\0^T&1\end{pmatrix},\qquad
- \boxed{{}^0T_E(q)=e^{\widehat\xi_1q_1}e^{\widehat\xi_2q_2}
- \cdots e^{\widehat\xi_6q_6}M.}
+ M=\begin{pmatrix}R_x(\gamma)&\vect{r}_6\\\vect{0}^\trans&1\end{pmatrix},\qquad
+ \boxed{{}^0T_E(\vect{q})=e^{\widehat{\vect{\xi}}_1q_1}e^{\widehat{\vect{\xi}}_2q_2}
+ \cdots e^{\widehat{\vect{\xi}}_6q_6}M.}
  \label{eq:poe-fk}
 \end{equation}
