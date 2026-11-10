@@ -4,7 +4,9 @@
 In this section we construct the geometric Jacobian of CuRo6R from the PoE model.
 The MATLAB PoE code keeps the intermediate transforms. These give each
 joint's current unit direction $w_i$ and a point $p_i$ on its axis, both in
-\texttt{base\_link}. For a revolute joint, the Jacobian column is
+\texttt{base\_link}. The current axis direction $w_i(q)$ is obtained by
+rotating the home direction $\omega_i$ through the preceding joint motions.
+For a revolute joint, the Jacobian column is
 \begin{equation}
  {}^0J_k(:,i)=
  \begin{pmatrix}w_i\times(p_k-p_i)\\w_i\end{pmatrix},
