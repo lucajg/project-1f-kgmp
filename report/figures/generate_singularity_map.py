@@ -123,7 +123,8 @@ def verified_cusps():
     return cusps, max_residual
 
 
-def main():
+def create_singularity_map():
+    """Build the two map panels, also used by the connectivity overlay."""
     angles = np.linspace(-np.pi, np.pi, 1201)
     q2, q3 = np.meshgrid(angles, angles)
     determinant = arm_determinant(q2, q3)
@@ -140,7 +141,7 @@ def main():
         "ytick.labelsize": 12,
         "pdf.fonttype": 42,
     })
-    negative, positive, ink, cusp_colour = "#d9d9ff", "#ffe6e6", "#202020", "#a32932"
+    negative, positive, ink = "#d9d9ff", "#ffe6e6", "#202020"
     # Match the report's text width so the plot labels retain their 12 pt size.
     fig = plt.figure(figsize=(6.2677, 4.85))
     ax = fig.add_axes([0.085, 0.35, 0.40, 0.517])
@@ -170,18 +171,7 @@ def main():
             workspace.plot(*wrist_section(segment[:, 0], segment[:, 1]),
                            color=ink, linewidth=1.0)
 
-    cusps, cusp_residual = verified_cusps()
-    joint_offsets = [(-25, 9), (-24, 8), (5, 9), (7, 7)]
-    workspace_offsets = [(8, -11), (-24, -14), (-16, -7), (22, -16)]
-    for index, q in enumerate(cusps):
-        for panel, position, offset in [
-            (ax, q, joint_offsets[index]),
-            (workspace, wrist_section(*q), workspace_offsets[index]),
-        ]:
-            panel.plot(*position, "o", color=cusp_colour, markersize=3.5, zorder=4)
-            panel.annotate(rf"$C_{index + 1}$", position, xytext=offset,
-                           textcoords="offset points", color=cusp_colour,
-                           fontsize=12)
+    _, cusp_residual = verified_cusps()
 
     ticks = np.linspace(-np.pi, np.pi, 5)
     labels = [r"$-\pi$", r"$-\pi/2$", "$0$", r"$\pi/2$", r"$\pi$"]
@@ -208,9 +198,7 @@ def main():
                  Line2D([], [], color=ink, linewidth=1,
                         label=r"$\det(J_{v,\mathrm{arm}})=0$ (arm singularities)"),
                  Patch(facecolor=positive, edgecolor="#999999",
-                       label=r"$\det(J_{v,\mathrm{arm}})>0$"),
-                 Line2D([], [], color=cusp_colour, marker="o", markersize=3.5,
-                        linestyle="none", label="Singular cusp preimages")],
+                       label=r"$\det(J_{v,\mathrm{arm}})>0$")],
         loc="upper center", bbox_to_anchor=(0.285, 0.22),
         bbox_transform=fig.transFigure, ncol=1, **legend_options,
     )
@@ -224,12 +212,15 @@ def main():
     workspace.add_artist(root_legend)
     workspace.legend(
         handles=[Line2D([], [], color=ink, linewidth=1,
-                        label=r"$\operatorname{disc}_t P=0$"),
-                 Line2D([], [], color=cusp_colour, marker="o", markersize=3.5,
-                        linestyle="none", label="Triple root (cusp)")],
+                        label=r"$\operatorname{disc}_t P=0$")],
         loc="upper center", bbox_to_anchor=(0.77, 0.105),
         bbox_transform=fig.transFigure, **legend_options,
     )
+    return fig, ax, workspace, residual, cusp_residual
+
+
+def main():
+    fig, _, _, residual, cusp_residual = create_singularity_map()
     out = Path(__file__).resolve().parent
     fig.savefig(out / "singularity_map.pdf", dpi=600, metadata={
         "Title": "CuRo6R arm singularities in joint space and wrist-centre workspace",

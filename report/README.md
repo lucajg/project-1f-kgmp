@@ -70,7 +70,7 @@ ordinary editable TikZ sources, requiring no external images or shell escape.
 geometry and a fixed projection (Python 3 with NumPy). Manual changes to the
 generated TikZ files are overwritten if that script is rerun.
 
-`figures/singularity_map.pdf` is the plot used in the Jacobian section, with
+`figures/singularity_map.pdf` is the standalone singularity map, with
 vector curves and labels and 600 dpi root-count shading;
 `figures/singularity_map.png` is its preview. Regenerate both with
 `python3 figures/generate_singularity_map.py` (NumPy and Matplotlib).
@@ -85,7 +85,6 @@ with zero, two and four distinct real roots, evaluated from the quartic on a
 For `rho_w > 0`, these counts give arm solutions before joint limits or wrist
 branches; discriminant sign alone would not distinguish zero from four roots.
 This is the wrist centre, not the orientation-dependent tool endpoint.
-Corresponding labels mark four cusps and their joint-space preimages.
 The full Jacobian determinant is `-sin(q5)*det(J_v_arm)`; at `q5 = pi/2`
 it is the negative of the plotted arm determinant. The generator checks the periodic boundaries, the residual along
 the interpolated contour, and the triple-root conditions of the IK quartic at
@@ -126,11 +125,19 @@ export_connectivity_linear;
 
 This validates 10,000 samples, independently checks every sample with DH,
 and writes `figures/connectivity_linear_data.json`. The data file retains
-the full-grid extrema and 1,001 samples for plotting. Render the four-panel
-figure with `python3 report/figures/generate_connectivity_linear.py`, then
-compile the report as above. The figure includes the projected arm segment
-and all endpoint wrist signs, the closed tool path, all six joint paths,
-and the full-Jacobian and joint-limit margins. Validation is numerical on
+the full-grid extrema and 1,001 samples for plotting. Render the combined
+two-panel figure with `python3 report/figures/generate_connectivity_linear.py`,
+then compile the report as above. This reuses the singularity-map generator
+and writes `figures/connectivity_linear.pdf` and its PNG preview. The figure
+appears once in the Jacobian section, with references from the connectivity
+section. Panel (a) overlays the arm segment and the four arm IK solutions on
+the joint-space map. Each solution has one circle and a label `t_1` through
+`t_4`, with the path connecting `t_1` to `t_3`.
+Panel (b) overlays the closed wrist-centre path in
+`(rho_w,z_w)` on the root-count map. The wrist-centre coordinates are checked
+against the exported tool path after subtracting the fixed offset
+`d6 * R_d(:,1)`. The joint-angle and margin plots are omitted; numerical
+validation margins remain in the text. Validation is numerical on
 the sample grid; the text does not claim an interval-wide certificate or
 global disconnection when a straight segment fails.
 

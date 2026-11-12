@@ -69,20 +69,17 @@ close to losing rank.
 \begin{center}
 \begin{minipage}{\linewidth}
 \centering
-\includegraphics[width=\linewidth]{figures/singularity_map.pdf}
+\includegraphics[width=\linewidth]{figures/connectivity_linear.pdf}
 \captionsetup{hypcap=false}
-\captionof{figure}{Arm singularities in (a) joint space and (b) the
-wrist-centre workspace, with $\rho_w=\sqrt{x_w^2+y_w^2}$.
-In (a), colours give the sign of $\det J_{v,\mathrm{arm}}$ and black
-curves show $\det J_{v,\mathrm{arm}}=0$. In (b), these curves map to real multiple roots of the
-IK quartic $P(t)$ in \eqref{eq:ik-quartic}, derived in
-Subsection~\ref{sec:ik-quartic}, where
-$\operatorname{disc}_t P=0$. Different shades of green give the number of distinct real roots
-away from the curves. For $\rho_w>0$, this is the number of arm solutions before joint limits.
-Matching labels mark four cusps (triple roots) and their singular joint-space preimages.
-The existence of the cusps indicates that the CuRo6R's positioning chain is cuspidal,
-meaning it can change between IK solutions without crossing an arm singularity.
-Wrist singularities remain a separate condition, which can also avoided.}
+\captionof{figure}{Arm singularities and a fixed-orientation solution change
+in (a) joint space and (b) the wrist-centre workspace,
+with $\rho_w=\sqrt{x_w^2+y_w^2}$.}
 \label{fig:arm-singularity-map}
+\label{fig:connectivity-linear}
 \end{minipage}
 \end{center}
+
+The cusps indicate that the CuRo6R's positioning chain is cuspidal: it can
+change between IK solutions without crossing an arm singularity.
+Wrist singularities remain a separate condition; the example in
+Subsection~\ref{sec:connectivity-linear} avoids them as well.

@@ -22,8 +22,8 @@ margins, one candidate remains, $\vect{q}^B$. In radians,
  \end{aligned}
  \label{eq:connectivity-endpoints}
 \end{equation}
-These are solutions $8^-$ and $4^-$ in Figure~\ref{fig:connectivity-linear};
-the superscript denotes $\operatorname{sign}(\sin q_5)$.
+Their arm solutions are labelled $t_1$ and $t_3$, respectively, in
+Figure~\ref{fig:connectivity-linear}.
 
 \textbf{From the arm segment to the full motion.}
 Writing $\vect{q}_a=(q_1,q_2,q_3)^\trans$, we prescribe
@@ -34,29 +34,12 @@ Writing $\vect{q}_a=(q_1,q_2,q_3)^\trans$, we prescribe
 where $s$ is a path advancement parameter. At each sample, we compute
 $({}^0R_3(\vect{q}_a(s)))^\trans R_d$ and recover $q_4,q_5,q_6$ using
 \eqref{eq:ik-wrist-solutions}, always choosing the initial wrist sign.
-The angles are unwrapped towards the previous sample before testing
-$-\pi\leq q_i\leq\pi$; wrapping an angle back into this interval would hide
-a physical joint-limit crossing.
-With $\vect{p}_C$ the wrist centre, the resulting tool path is
-$\vect{p}_6(s)=\vect{p}_C(\vect{q}_a(s))+d_6R_d\vect{e}_x$.
-Both arm endpoints reach the same wrist centre, so
-$\vect{p}_6(1)=\vect{p}_6(0)$, although $\vect{q}(1)\ne\vect{q}(0)$.
 Thus a straight arm segment produces a closed, curved workspace path.
-
-\begin{center}
-\begin{minipage}{\linewidth}
-\centering
-\includegraphics[width=\linewidth]{figures/connectivity_linear.pdf}
-\captionsetup{hypcap=false}
-\captionof{figure}{A fixed-orientation change from $A=8^-$ to $B=4^-$.
-In (a), black curves are $\det J_{v,\mathrm{arm}}=0$; blue and pink denote
-negative and positive values, respectively.
-Each arm point carries both wrist signs, shown by a circle ($+$) and square
-($-$). The green segment stays in one regular arm region.
-Panels (b)--(d) show the tool loop, all six joint paths, and the sampled margins.}
-\label{fig:connectivity-linear}
-\end{minipage}
-\end{center}
+Figure~\ref{fig:connectivity-linear}(a) overlays this segment on the arm
+singularity map; panel (b) shows the corresponding wrist-centre loop in
+$(\rho_w,z_w)$, with $\rho_w=\sqrt{x_w^2+y_w^2}$.
+The arm segment stays in one regular region. Crossings of the workspace
+singularity curves concern other IK branches, not the followed configuration.
 
 \textbf{Validation and interpretation.}
 We evaluate 10\,000 equally spaced samples, monitoring the arm sign,
