@@ -129,12 +129,32 @@ the full-grid extrema and 1,001 samples for plotting. Render the combined
 two-panel figure with `python3 report/figures/generate_connectivity_linear.py`,
 then compile the report as above. This reuses the singularity-map generator
 and writes `figures/connectivity_linear.pdf` and its PNG preview. The figure
-appears once in the Jacobian section, with references from the connectivity
-section. Panel (a) overlays the arm segment and the four arm IK solutions on
+appears once in the connectivity section, after the analytical IK derivation,
+with a forward reference from the Jacobian section. Panel (a) overlays the arm segment and the four arm IK solutions on
 the joint-space map. Each solution has one circle and a label `t_1` through
-`t_4`, with the path connecting `t_1` to `t_3`.
+`t_4`, assigned by increasing `t = tan(q3/2)` at the marked target:
+approximately `(-0.400879, -0.140288, 1.155143, 1.333486)`.
+The path connects `t_4` to `t_2`. The numerical ordering holds throughout
+the connected component containing that target where all four roots are
+real, finite and distinct. Branch labels are preserved under continuation
+through infinity, so the ordering need not hold in other finite-root
+components of the green four-solution region. Distance from a cusp alone
+does not determine whether a root is finite.
 Panel (b) overlays the closed wrist-centre path in
-`(rho_w,z_w)` on the root-count map. The wrist-centre coordinates are checked
+`(rho_w,z_w)` on the root-count map. Its four cusps are named for the root
+shared by the incident folds: `C_4` (lower left), `C_1` (middle left), and
+`C_3^u`, `C_3^r` (upper and right). The five open 4/2 boundary arcs are
+labelled by their coalescing pair: `F_34` on the upper-left and lower arcs,
+`F_23` on the right, `F_14` between `C_4` and `C_1`, and `F_12` from `C_1`
+to the node. The root identities were checked by continuation from the
+marked target within the four-root region, tracking angles on the circle
+to accommodate the half-angle root at infinity. The local angular orders
+of the triple roots are `(3,4,1)`, `(2,3,4)`, `(4,1,2)`, `(2,3,4)` in the
+stored cusp order. The pair labels apply to the 4/2 arcs; they do not assert
+a global branch numbering in the two-root region. The standalone map
+retains its unlabelled curves, since these names refer to the example's
+particular `t_1,...,t_4` numbering.
+The wrist-centre coordinates are checked
 against the exported tool path after subtracting the fixed offset
 `d6 * R_d(:,1)`. The joint-angle and margin plots are omitted; numerical
 validation margins remain in the text. Validation is numerical on

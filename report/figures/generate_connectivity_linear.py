@@ -12,8 +12,59 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from generate_singularity_map import (
-    arm_determinant, create_singularity_map, wrist_position, wrist_section,
+    arm_determinant, create_singularity_map, verified_cusps,
+    wrist_position, wrist_section,
 )
+
+
+def label_workspace_singularities(workspace):
+    """Name the 4/2 folds using continuation of the displayed arm roots.
+
+    Labels start in increasing t=tan(q3/2) order at the marked target and
+    are continued within the four-root region, including through infinity.
+    In verified_cusps() order, the coalescing roots in local angular order
+    are (3,4,1), (2,3,4), (4,1,2), and (2,3,4). The middle root names each
+    cusp. Both the upper and right cusp therefore have index 3.
+    Pair names are not extended around the two-root region: continuation
+    around a cusp can change the branch reached at the reference target.
+    """
+    ink = '#202020'
+    box = {'facecolor': 'white', 'alpha': .92,
+           'edgecolor': 'none', 'pad': .5}
+    leader = {'arrowstyle': '-', 'color': ink, 'lw': .45,
+              'shrinkA': 2, 'shrinkB': 2}
+    cusps, _ = verified_cusps()
+    cusp_labels = [
+        (r'$C_4$', (0.85, 0.12)),
+        (r'$C_3^{r}$', (5.05, 0.35)),
+        (r'$C_1$', (1.00, 1.95)),
+        (r'$C_3^{u}$', (0.65, 5.35)),
+    ]
+    for q, (label, text_position) in zip(cusps, cusp_labels):
+        point = wrist_section(*q)
+        workspace.plot(*point, 'o', color=ink, ms=2.7, zorder=10)
+        workspace.annotate(label, point, xytext=text_position, fontsize=10,
+                           ha='center', va='center', bbox=box,
+                           arrowprops=leader, zorder=11)
+
+    # Anchors on the five open 4/2 arcs, checked by root continuation.
+    # F_34 occurs on two separate arcs. Snap to the plotted zero contour.
+    curves = np.concatenate([
+        np.column_stack((line.get_xdata(), line.get_ydata()))
+        for line in workspace.lines if len(line.get_xdata()) > 1
+    ])
+    folds = [
+        (r'$F_{34}$', (2.17853, 4.71636), (0.95, 4.65)),
+        (r'$F_{23}$', (4.00991, 2.51006), (4.85, 2.45)),
+        (r'$F_{34}$', (2.59419, 1.49531), (2.90, 0.85)),
+        (r'$F_{14}$', (1.55892, 0.98410), (0.60, 0.85)),
+        (r'$F_{12}$', (1.79537, 1.71598), (2.80, 2.60)),
+    ]
+    for label, anchor, text_position in folds:
+        point = curves[np.argmin(np.linalg.norm(curves - anchor, axis=1))]
+        workspace.annotate(label, point, xytext=text_position, fontsize=10,
+                           ha='center', va='center', bbox=box,
+                           arrowprops=leader, zorder=11)
 
 
 def main():
@@ -40,6 +91,7 @@ def main():
                        atol=1e-10, rtol=0)
 
     fig, ax, workspace, residual, cusp_residual = create_singularity_map()
+    label_workspace_singularities(workspace)
     blue, path_colour = '#2164A1', '#D18A00'
     # Retain the full maps and equal axis scaling from the original figure.
     for panel, x, y in ((ax, q[1], q[2]), (workspace, rho, z)):
@@ -51,15 +103,24 @@ def main():
                                    'lw': .9, 'mutation_scale': 9}, zorder=7)
 
     remaining = list(range(solutions.shape[1]))
-    offsets = [(7, -8), (-8, -4), (0, 8), (7, 4)]
-    # Display labels in solver-group order: start t_1, goal t_3.
-    display_numbers = (4, 3, 2, 1)
-    group_number = 0
-    group_numbers = {}
+    groups = []
     while remaining:
         idx = remaining[0]
         group = [j for j in remaining
                  if np.linalg.norm(solutions[1:3, j]-solutions[1:3, idx]) < 1e-6]
+        groups.append(group)
+        remaining = [j for j in remaining if j not in group]
+
+    # Number the four arm branches by increasing finite half-angle root at
+    # the common target. Keep these identities when continuing elsewhere.
+    root_values = np.tan(solutions[2, [group[0] for group in groups]] / 2)
+    assert len(groups) == 4 and np.all(np.isfinite(root_values))
+    assert np.all(np.diff(np.sort(root_values)) > 1e-6)
+    display_numbers = np.argsort(np.argsort(root_values)) + 1
+    offsets = [(7, -8), (-8, -4), (0, 8), (7, 4)]
+    group_numbers = {}
+    for group_number, group in enumerate(groups):
+        idx = group[0]
         # Both wrist branches share one arm point and one label.
         display_number = display_numbers[group_number]
         group_numbers.update({j: display_number for j in group})
@@ -71,8 +132,9 @@ def main():
                     ha='center' if offset[0] == 0 else ('left' if offset[0] > 0 else 'right'),
                     bbox={'facecolor': 'white', 'alpha': .9,
                           'edgecolor': 'none', 'pad': .4}, zorder=9)
-        remaining = [j for j in remaining if j not in group]
-        group_number += 1
+
+    assert (group_numbers[start_id], group_numbers[goal_id]) == (4, 2), \
+        'The endpoint labels must match the connectivity section.'
 
     workspace.plot(rho[0], z[0], 'o', ms=5, mfc='white', mec=path_colour,
                    mew=.9, zorder=8)
@@ -87,6 +149,7 @@ def main():
     })
     fig.savefig(here / 'connectivity_linear.png', dpi=240)
     plt.close(fig)
+    print(f'Ordered roots t_1,...,t_4: {np.sort(root_values)}.')
     print(f'Saved connectivity_linear.pdf and .png; wrist projection error '
           f'{projection_error:.3e} m; contour residual {residual:.3e}; '
           f'cusp triple-root residual {cusp_residual:.3e}.')

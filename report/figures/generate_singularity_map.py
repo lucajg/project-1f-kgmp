@@ -144,7 +144,8 @@ def create_singularity_map():
     negative, positive, ink = "#d9d9ff", "#ffe6e6", "#202020"
     # Match the report's text width so the plot labels retain their 12 pt size.
     fig = plt.figure(figsize=(6.2677, 4.85))
-    ax = fig.add_axes([0.085, 0.35, 0.40, 0.517])
+    # Leave enough room for the pi tick labels and the vertical q3 label.
+    ax = fig.add_axes([0.13, 0.35, 0.40, 0.517])
     workspace = fig.add_axes([0.61, 0.327, 0.35, 0.54])
     root_colours = ["#ffffff", "#dcebf2", "#a3cdb9"]
     rho_edges = np.linspace(0, 5.8, 581)

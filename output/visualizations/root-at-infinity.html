@@ -1,0 +1,113 @@
+<div id="root-infinity-circle">
+  <style>
+    #root-infinity-circle { display: grid; gap: calc(var(--font-size-base) * .75); }
+    #root-infinity-circle .plot { display: block; width: 100%; overflow: visible; }
+    #root-infinity-circle .plot text { fill: currentColor; font: inherit; }
+    #root-infinity-circle .legend { display: flex; flex-wrap: wrap; gap: calc(var(--font-size-base) * 1.2); }
+    #root-infinity-circle .legend span { display: inline-flex; align-items: center; gap: calc(var(--font-size-base) * .4); }
+    #root-infinity-circle .swatch { display: inline-block; width: 22px; height: 0; border-top: 2px solid currentColor; }
+    #root-infinity-circle .swatch.conic { color: var(--viz-series-2, currentColor); border-top-style: dashed; }
+    #root-infinity-circle .swatch.active { width: 9px; height: 9px; border: 0; border-radius: 50%; background: currentColor; color: var(--viz-series-1, currentColor); }
+    #root-infinity-circle .values { display: flex; flex-wrap: wrap; align-items: baseline; gap: calc(var(--font-size-base) * 1.2); }
+  </style>
+  <h3>Circle–conic intersections</h3>
+  <div class="legend text-small" aria-label="Legend">
+    <span><i class="swatch" aria-hidden="true"></i>Unit circle</span>
+    <span><i class="swatch conic" aria-hidden="true"></i>Illustrative ellipse</span>
+    <span><i class="swatch active" aria-hidden="true"></i>Followed root</span>
+  </div>
+  <svg class="plot" role="img" aria-labelledby="infinity-title infinity-desc">
+    <title id="infinity-title">A conic intersects the unit circle at four points</title>
+    <desc id="infinity-desc">Changing the angle translates an illustrative ellipse vertically, keeping its axes fixed. The followed intersection moves smoothly through the leftmost circle point, where the half-angle coordinate is infinite. The solid circle and dashed ellipse have four distinct intersections throughout.</desc>
+    <g class="geometry"></g>
+  </svg>
+  <div class="values">
+    <label class="form-label" for="infinity-angle">Angle q₃: <output id="infinity-angle-value" class="tabular-nums">180.0°</output></label>
+    <span>Half-angle root t: <output id="infinity-root-value" class="tabular-nums" aria-live="polite">∞</output></span>
+  </div>
+  <input class="form-range" id="infinity-angle" type="range" min="170" max="190" step="0.1" value="180" aria-label="Angle q3 in degrees">
+  <script>
+    (() => {
+      const root = document.getElementById('root-infinity-circle');
+      const plot = root.querySelector('.plot');
+      const geometry = root.querySelector('.geometry');
+      const slider = root.querySelector('#infinity-angle');
+      const angleValue = root.querySelector('#infinity-angle-value');
+      const rootValue = root.querySelector('#infinity-root-value');
+      const a = 1.3, b = .4;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+      let angle = 180, frame = 0;
+      const valid = value => typeof value === 'number' && Number.isFinite(value) && value >= 170 && value <= 190;
+      const saved = window.openai?.widgetState?.modelContent?.angleDegrees;
+      if (valid(saved)) angle = saved;
+      slider.value = String(angle);
+
+      function render(degrees) {
+        const width = Math.max(280, root.getBoundingClientRect().width);
+        const r = Math.min(135, (width - 88) / (2 * a));
+        const height = 2 * a * r + 80;
+        const cx = width / 2, cy = height / 2 - 6;
+        const theta = degrees * Math.PI / 180;
+        const x = Math.cos(theta), y = Math.sin(theta);
+        const k = y + b * Math.sqrt(1 - x * x / (a * a));
+        const otherY = 2 * k / (1 - b * b / (a * a)) - y;
+        const otherX = Math.sqrt(Math.max(0, 1 - otherY * otherY));
+        const sx = x => cx + r * x, sy = y => cy - r * y;
+        plot.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        plot.setAttribute('height', String(height));
+        const others = [[-x, y], [otherX, otherY], [-otherX, otherY]].map(([px, py]) =>
+          `<circle cx="${sx(px)}" cy="${sy(py)}" r="3.7" fill="none" stroke="currentColor" stroke-width="1.4"/>`
+        ).join('');
+        geometry.innerHTML = `
+          <g stroke="currentColor" stroke-opacity=".2" stroke-width="1" fill="none" pointer-events="none">
+            <line x1="${sx(-1.32)}" y1="${cy}" x2="${sx(1.32)}" y2="${cy}"/>
+            <line x1="${cx}" y1="${sy(-1.2)}" x2="${cx}" y2="${sy(1.2)}"/>
+          </g>
+          <circle class="unit-circle" cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <ellipse class="illustrative-conic" cx="${cx}" cy="${sy(k)}" rx="${a*r}" ry="${b*r}" fill="none" stroke="currentColor" style="color:var(--viz-series-2,currentColor)" stroke-width="2" stroke-dasharray="6 3"/>
+          <g stroke="currentColor" stroke-width="1" fill="none" pointer-events="none">
+            <line x1="${sx(-1) - 6}" y1="${cy}" x2="${sx(-1) + 6}" y2="${cy}"/>
+            <line x1="${sx(-1)}" y1="${cy - 6}" x2="${sx(-1)}" y2="${cy + 6}"/>
+            <line x1="${sx(-1) - 2}" y1="${cy + 9}" x2="${sx(-1) - 12}" y2="${cy + 39}"/>
+          </g>
+          ${others}
+          <circle cx="${sx(x)}" cy="${sy(y)}" r="5.8" fill="currentColor" style="color:var(--viz-series-1,currentColor)"/>
+          <text x="${width - 7}" y="${cy - 14}" text-anchor="end">cos q₃</text>
+          <text x="${cx + 9}" y="${sy(1.2) - 7}">sin q₃</text>
+          <text x="${cx + 8}" y="${cy + 20}" class="text-small">0</text>
+          <text x="${sx(-1) - 12}" y="${cy + 57}" text-anchor="middle">(−1, 0)</text>
+          <text x="${sx(-1) - 12}" y="${cy + 76}" text-anchor="middle">t = ∞</text>`;
+        angleValue.textContent = `${degrees.toFixed(1)}°`;
+        rootValue.textContent = Math.abs(degrees - 180) < 1e-8 ? '∞' : Math.tan(theta / 2).toFixed(2);
+        slider.setAttribute('aria-valuetext', `${degrees.toFixed(1)} degrees`);
+      }
+
+      slider.addEventListener('input', () => {
+        const target = Number(slider.value);
+        cancelAnimationFrame(frame);
+        if (reduced.matches) { angle = target; render(angle); return; }
+        const initial = angle, start = performance.now();
+        const advance = now => {
+          const fraction = Math.min(1, (now - start) / 100);
+          angle = initial + (target - initial) * (1 - (1 - fraction) ** 2);
+          render(angle);
+          if (fraction < 1) frame = requestAnimationFrame(advance);
+        };
+        frame = requestAnimationFrame(advance);
+      });
+      slider.addEventListener('change', () => {
+        if (window.openai?.setWidgetState) {
+          window.openai.setWidgetState({ modelContent: { angleDegrees: Number(slider.value) } }).catch(() => {});
+        }
+      });
+      window.addEventListener('openai:set_globals', event => {
+        const value = event.detail?.globals?.widgetState?.modelContent?.angleDegrees;
+        if (valid(value)) {
+          cancelAnimationFrame(frame); angle = value; slider.value = String(value); render(angle);
+        }
+      });
+      new ResizeObserver(() => render(angle)).observe(root);
+      render(angle);
+    })();
+  </script>
+</div>

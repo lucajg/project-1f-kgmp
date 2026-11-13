@@ -3,7 +3,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{amsmath,amssymb,booktabs,array,tabularx}
-\usepackage{graphicx}
+\usepackage{graphicx,wrapfig,needspace}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,calc}
 \usepackage{caption,fancyhdr,microtype}
@@ -23,7 +23,13 @@
 \fancyfoot[C]{\small\thepage}
 \renewcommand{\headrulewidth}{0.3pt}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{5pt}
+\setlength{\parskip}{3pt}
+\AtBeginDocument{%
+  \setlength{\abovedisplayskip}{8pt plus 2pt minus 3pt}%
+  \setlength{\belowdisplayskip}{8pt plus 2pt minus 3pt}%
+  \setlength{\abovedisplayshortskip}{0pt plus 2pt}%
+  \setlength{\belowdisplayshortskip}{5pt plus 2pt minus 2pt}%
+}
 \captionsetup{font=small,labelfont=bf}
 \newcommand{\frameid}[1]{\{#1\}}
 \newcommand{\jointid}[1]{\mathrm{J}_{#1}}
@@ -46,9 +52,6 @@
 }
 \begin{document}
 \section{Forward kinematics models}
-In this section, we present the forward kinematics model we obtained for our CuRo6R robot 
-using Denavit--Hartenberg parameters and also using Product of Exponentials. We also 
-show numerical agreement between the two models. 
 \label{sec:fk-models}
 \providecommand{\DHSectionFile}{sections/dh_parameters.tex}
 \input{\DHSectionFile}
@@ -63,9 +66,10 @@ show numerical agreement between the two models.
 
 \section{Connectivity analysis}
 \label{sec:connectivity}
-A nonsingular change of solution returns the tool to its initial pose while leaving the
-robot in a different joint configuration and keeping the full pose regular throughout the motion.
-In this section, we show an example of how a nonsingular change of solution can be achieved for our particular robot.
+In this section we provide a qualitative analysis of the conditions required for a non-singular
+change of solutions, and the sequence of steps we used to numerically get a trajectory for a
+nonsingular change of solution with constant tool orientation.
+
 \input{sections/connectivity_linear.tex}
 
 \clearpage

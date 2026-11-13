@@ -3,46 +3,45 @@
 
 The DH frames are assigned from the CuRo6R URDF, with frame $\frameid{0}$ at
 \texttt{base\_link}, joint $i$ rotating about $z_{i-1}$, and $\vect{q}=\vect{0}$ matching the
-URDF home configuration. We use standard DH transforms:
-\begin{equation}
- {}^{i-1}\!T_i=R_z(\theta_i)\,T_z(d_i)\,T_x(a_i)\,R_x(\alpha_i).
- \label{eq:dh-convention}
-\end{equation}
+URDF home configuration. We use the standard DH transform
+${}^{i-1}\!T_i=R_z(\theta_i)\,T_z(d_i)\,T_x(a_i)\,R_x(\alpha_i)$.
 Table~\ref{tab:dh} gives the resulting parameters and the geometric choices
-that determine them. The only fixed joint-angle offset is $\theta_3-q_3=\pi/2$.
+that determine them. Each twist $\alpha_i$ rotates $z_{i-1}$ onto $z_i$ about $+x_i$
+by the right-hand rule.
+The only fixed joint-angle offset is $\theta_3-q_3=\pi/2$.
 The full sequence of frame drawings is given in Appendix~\ref{app:dh-constructions}.
 
 \begin{table}[!ht]
 \centering
-\caption{A non-unique solution for the DH parameters of CuRo6R. Lengths are in metres, angles are in radians.}
+\caption{One valid DH assignment for CuRo6R. Lengths are in metres; parameter angles are in radians, with degrees used in the explanations.}
 \label{tab:dh}
 \small
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.30}
 \begin{tabularx}{\linewidth}{@{}c c c c c X@{}}
 \toprule
-$i$ & $d_i$ & $\theta_i$ & $\alpha_i$ & $a_i$ & Geometric origin of the parameters \\
+$i$ & $d_i$ & $\theta_i$ & $\alpha_i$ & $a_i$ & Geometric construction at home \\
 \midrule
 1 & $1$ & $q_1$ & $-\pi/3$ & $0.8$
-  & The two base heights add: $d_1=0.5+0.5$; the lateral offset is $a_1=0.8$.
-    Joint 2's axis is its local $y$ axis, so the $30^\circ$ URDF roll gives
-    $\alpha_1=30^\circ-90^\circ=-60^\circ$. \\
+  & Rise $0.5+0.5$, then move $0.8$ along $x_1=x_0$ to the shoulder.
+    Its axis $z_1$ lies $30^\circ$ above $+y_0$, requiring a $-60^\circ$
+    turn from $z_0$ about $+x_1$. \\
 2 & $1.25$ & $q_2$ & $+\pi/2$ & $2$
-  & The joint-3 offset resolves into $1.25$ along $z_1$ and $2$ along $x_2$.
-    At home $x_2=x_1$, and the orthogonal joint axes give $\alpha_2=+90^\circ$. \\
+  & Move $1.25$ along $z_1$, then $2$ along $x_2$ to reach joint 3.
+    Here $x_2=x_1$ and $z_2=-y_1$, so the twist is a positive quarter-turn. \\
 3 & $0.75$ & $q_3+\pi/2$ & $+\pi/2$ & $0$
-  & Moving $0.75$ along $z_2$ reaches the intersection with joint 4's axis:
-    $O_3$ in step 3 of Appendix~\ref{app:dh-constructions}, hence $a_3=0$.
-    Choosing $x_3=y_2$ gives the $+90^\circ$ angle offset and $\alpha_3=+90^\circ$. \\
+  & Axes 3 and 4 meet $0.75$ along $z_2$, so $a_3=0$.
+    Choosing $x_3=y_2$ gives the $+90^\circ$ joint-angle offset;
+    $y_2\times z_2=x_2=z_3$ gives the positive quarter-turn twist. \\
 4 & $2.5$ & $q_4$ & $-\pi/2$ & $0$
-  & The wrist centre lies $1.5+1=2.5$ along $z_3$ from $O_3$.
-    Axes 4 and 5 intersect there; with $x_4=x_3$ at home, $\alpha_4=-90^\circ$. \\
+  & The wrist is $1.5+1$ along $z_3$ from $O_3$; intersecting axes give $a_4=0$.
+    With $x_4=x_3$, reaching $z_4=y_3$ requires a negative quarter-turn. \\
 5 & $0$ & $q_5$ & $+\pi/2$ & $0$
-  & Axes 5 and 6 meet at the wrist centre, so $O_5=O_4$ and $d_5=a_5=0$
-    [Appendix~\ref{app:dh-constructions}, step 5]. Keeping $x_5=x_4$ gives $\alpha_5=+90^\circ$. \\
+  & Axes 5 and 6 meet at $O_5=O_4$, so $d_5=a_5=0$.
+    With $x_5=x_4$, reaching $z_5=-y_4$ requires a positive quarter-turn. \\
 6 & $1.5$ & $q_6$ & $0$ & $0$
-  & The endpoint is $1.5$ along $z_5$ from the wrist centre.
-    Choosing $z_6=z_5$ and $x_6=x_5$ at home gives $a_6=\alpha_6=0$. \\
+  & The endpoint $O_6$ lies $1.5$ along $z_5$ from the wrist.
+    The last two DH $z$ axes coincide and point the same way, giving $a_6=\alpha_6=0$. \\
 \bottomrule
 \end{tabularx}
 \end{table}

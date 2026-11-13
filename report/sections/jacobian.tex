@@ -14,7 +14,7 @@ For a revolute joint, the Jacobian column is
  \label{eq:jacobian-column}
 \end{equation}
 The upper rows give linear velocity and the lower rows give angular
-velocity. We use $k=6$ for the endpoint. Choosing $k=5$ instead refers the
+velocity. We use $k=E$ for the endpoint. Choosing $k=5$ instead refers the
 same tool motion to the wrist centre.
 
 \textbf{Arm and wrist blocks.}
@@ -59,27 +59,9 @@ $\pi$ modulo $2\pi$. Axes 4 and 6 then lie on the same line, so one
 independent rotation is lost. The arm factor depends jointly on $q_2$ and
 $q_3$. Thus the wrist and arm conditions separate, while the arm condition
 must be studied in the $(q_2,q_3)$ plane, as shown in
-Figure~\ref{fig:arm-singularity-map}.
+Figure~\ref{fig:arm-singularity-map}(a) in Section~\ref{sec:connectivity}.
 
 A full configuration is regular exactly when both factors are nonzero.
-Numerically, we monitor the smallest singular value of \(J\). It becomes 
-zero at a singularity, and small values indicate that the Jacobian is 
-close to losing rank.
-
-\begin{center}
-\begin{minipage}{\linewidth}
-\centering
-\includegraphics[width=\linewidth]{figures/connectivity_linear.pdf}
-\captionsetup{hypcap=false}
-\captionof{figure}{Arm singularities and a fixed-orientation solution change
-in (a) joint space and (b) the wrist-centre workspace,
-with $\rho_w=\sqrt{x_w^2+y_w^2}$.}
-\label{fig:arm-singularity-map}
-\label{fig:connectivity-linear}
-\end{minipage}
-\end{center}
-
-The cusps indicate that the CuRo6R's positioning chain is cuspidal: it can
-change between IK solutions without crossing an arm singularity.
-Wrist singularities remain a separate condition; the example in
-Subsection~\ref{sec:connectivity-linear} avoids them as well.
+For numerical path validation in Section~\ref{sec:connectivity}, we monitor
+$\sigma_{\min}(\widetilde J)$, using the scaled endpoint Jacobian defined there.
+It vanishes at singular configurations; a positive threshold enforces a numerical margin.

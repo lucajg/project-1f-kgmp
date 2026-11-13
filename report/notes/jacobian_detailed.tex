@@ -32,13 +32,13 @@ values. Numerical singular-value margins should therefore use a fixed
 reference point.
 
 \textbf{From joint space to the wrist-centre workspace.}
-Set $V=d_2+d_4s_3$, $c_\gamma=\cos\gamma$ and $s_\gamma=\sin\gamma$.
+Set $B=d_2+d_4s_3$, $c_\gamma=\cos\gamma$ and $s_\gamma=\sin\gamma$.
 At $q_1=0$, the wrist centre is
 \begin{equation}
  p_w=\begin{pmatrix}
- a_1+X\\c_\gamma V-s_\gamma Z\\d_1+s_\gamma V+c_\gamma Z
+ a_1+X\\c_\gamma B-s_\gamma D\\d_1+s_\gamma B+c_\gamma D
  \end{pmatrix},\qquad
- \rho_w=\sqrt{(a_1+X)^2+(c_\gamma V-s_\gamma Z)^2}.
+ \rho_w=\sqrt{(a_1+X)^2+(c_\gamma B-s_\gamma D)^2}.
 \end{equation}
 Changing $q_1$ rotates this point about the base $z$-axis, leaving
 $(\rho_w,z_w)$ unchanged. The right panel of
@@ -48,10 +48,10 @@ joints 1--3. The tool endpoint also depends on the wrist orientation
 through $p_E=p_w+d_6R_Ee_x$.
 
 \textbf{Checking the cusps.}
-The four marked points were checked using the arm IK polynomial
+Four numerically located cusps were checked using the arm IK polynomial
 $P(t)$ in \eqref{eq:ik-quartic}. For each wrist point, form the target
 invariants $h=z_w-d_1$ and $\mathcal R=x_w^2+y_w^2+h^2$.
-At $t=\tan(q_3/2)$, each marked point satisfies
+At $t=\tan(q_3/2)$, each point satisfies
 \begin{equation}
  P(t)=P'(t)=P''(t)=0,\qquad P'''(t)\ne0.
 \end{equation}

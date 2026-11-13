@@ -4,17 +4,17 @@
 \subsection{Frames, geometry and the wrist target}
 \label{sec:ik-position}
 We seek the joint vectors $\vect{q}=(q_1,\ldots,q_6)^\trans$ giving a prescribed pose
-of \texttt{link\_6}. Frame $0$ is \texttt{base\_link}; frames $1,\ldots,6$
+of the endpoint frame $E$ (\texttt{link\_6}). Frame $0$ is \texttt{base\_link}; frames $1,\ldots,5$
 are the physical URDF link frames, as in Section~\ref{sec:jacobian}.
 The $q_i$ are URDF joint displacements from home. We use the DH lengths
 from Table~\ref{tab:dh} and the fixed tilt $\gamma$ from Subsection~\ref{sec:poe}.
 
-Let $C$ be the wrist centre, the origin of frame~5. The geometry is specified by
+Let $W$ be the wrist centre, the origin of frame~5. The geometry is specified by
 \begin{equation}
  \begin{aligned}
  {}^0\vect{t}_2\big|_{q_1=0}&=(a_1,0,d_1)^\trans,
  &{}^2\vect{t}_3&=(a_2,d_2,0)^\trans,\\
- {}^3\vect{p}_C&=(d_4,0,d_3)^\trans,
+ {}^3\vect{p}_W&=(d_4,0,d_3)^\trans,
  &Q:={}^{1}R_2\big|_{q_2=0}&=R_x(\gamma).
  \end{aligned}
  \label{eq:ik-geometry}
@@ -23,72 +23,68 @@ We retain $c_i=\cos q_i$, $s_i=\sin q_i$ and define
 $c_\gamma=\cos\gamma$, $s_\gamma=\sin\gamma$.
 The matrices $R_x,R_y,R_z$ are right-handed rotations.
 
-All three wrist axes pass through $C$, so its position depends only on
-$q_1,q_2,q_3$. The origin of frame~6 lies a distance $d_6$ from $C$ along
+All three wrist axes pass through $W$, so its position depends only on
+$q_1,q_2,q_3$. The origin of $E$ lies a distance $d_6$ from $W$ along
 its own $x$ axis. The subscript $d$ denotes a desired quantity, so the target
 pose gives the desired wrist position
 \begin{equation}
- \boxed{{}^0\vect{p}_{C,d}={}^0\vect{t}_{6,d}-d_6\,{}^0R_{6,d}\vect{e}_x
-       =\begin{pmatrix}x_d&y_d&z_d\end{pmatrix}^{\trans}}.
+ \boxed{{}^0\vect{p}_{W,d}={}^0\vect{t}_{E,d}-d_6\,{}^0R_{E,d}\vect{e}_x
+       =\begin{pmatrix}x_{w,d}&y_{w,d}&z_{w,d}\end{pmatrix}^{\trans}}.
  \label{eq:ik-wrist-target}
 \end{equation}
 
-\subsection{Writing the wrist-centre position}
+\textbf{Wrist-centre position.}
 Let $O$ be the point on axis~1 at shoulder height,
 ${}^0\vect{p}_O=d_1\vect{e}_z$. Combining the relative translations and rotations gives
 \begin{equation}
  \begin{aligned}
- {}^0\vect{p}_C(\vect{q})={}&\underbrace{d_1\vect{e}_z}_{{}^0\vect{p}_O}+\underbrace{R_z(q_1)}_{{}^0R_1}
+ {}^0\vect{p}_W(\vect{q})={}&\underbrace{d_1\vect{e}_z}_{{}^0\vect{p}_O}+\underbrace{R_z(q_1)}_{{}^0R_1}
  \underbrace{\Biggl[
    \underbrace{a_1\vect{e}_x}_{{}^1\vect{t}_2-{}^1\vect{p}_O}
    +\underbrace{Q R_y(q_2)}_{{}^1R_2}
    \underbrace{\Biggl(
      \underbrace{\begin{pmatrix}a_2\\d_2\\0\end{pmatrix}}_{{}^2\vect{t}_3}
      +\underbrace{R_z(q_3)}_{{}^2R_3}
-      \underbrace{\begin{pmatrix}d_4\\0\\d_3\end{pmatrix}}_{{}^3\vect{p}_C}
-   \Biggr)}_{{}^2\vect{p}_C}
- \Biggr]}_{{}^1\vect{p}_C-{}^1\vect{p}_O}.
+      \underbrace{\begin{pmatrix}d_4\\0\\d_3\end{pmatrix}}_{{}^3\vect{p}_W}
+   \Biggr)}_{{}^2\vect{p}_W}
+ \Biggr]}_{{}^1\vect{p}_W-{}^1\vect{p}_O}.
  \end{aligned}
  \label{eq:ik-position-map}
 \end{equation}
 This is the wrist-centre position obtained from the PoE model.
 We evaluate it from the inside out. First, joint~3 gives the shoulder-to-wrist coordinates
-in frame~2: ${}^2\vect{p}_C=(F_1,B,F_2)^\trans$, where
+in frame~2: ${}^2\vect{p}_W=(F_1,B,F_2)^\trans$, where
 \begin{equation}
  F_1:=a_2+d_4c_3,\qquad B:=d_2+d_4s_3,\qquad F_2:=d_3.
  \label{eq:ik-auxiliary}
 \end{equation}
-Next we apply joint~2, then the fixed tilt and the shoulder offset:
+Joint~2 leaves $B$ unchanged. Applying this rotation, then the fixed tilt
+and shoulder offset, gives ${}^1\vect{p}_W-{}^1\vect{p}_O=(A,Y,H)^\trans$
 \begin{equation}
- \begin{aligned}
- \underbrace{\begin{pmatrix}X\\B\\D\end{pmatrix}}_{\text{before the tilt}}
- &=R_y(q_2)\begin{pmatrix}F_1\\B\\F_2\end{pmatrix}
- =\begin{pmatrix}F_1c_2+F_2s_2\\B\\F_2c_2-F_1s_2\end{pmatrix},\\[8pt]
- \underbrace{\begin{pmatrix}A\\Y\\H\end{pmatrix}}_{\text{before joint 1}}
- &=a_1\vect{e}_x+Q\begin{pmatrix}X\\B\\D\end{pmatrix}
- =\begin{pmatrix}a_1+X\\c_\gamma B-s_\gamma D\\s_\gamma B+c_\gamma D\end{pmatrix}.
- \end{aligned}
+ \begin{gathered}
+ X=F_1c_2+F_2s_2,\qquad D=F_2c_2-F_1s_2,\\
+ A=a_1+X,\qquad Y=c_\gamma B-s_\gamma D,\qquad H=s_\gamma B+c_\gamma D.
+ \end{gathered}
  \label{eq:ik-intermediate-vectors}
 \end{equation}
-$A,Y,H$ are the wrist's two horizontal components and its height relative
-to the point on axis~1 at height $d_1$, in axes that rotate with joint~1. Applying the final base rotation gives us
+For an IK solution, the final base rotation gives
 \begin{equation}
- x_d=Ac_1-Ys_1,\qquad y_d=As_1+Yc_1,\qquad z_d=d_1+H.
+ x_{w,d}=Ac_1-Ys_1,\qquad y_{w,d}=As_1+Yc_1,\qquad z_{w,d}=d_1+H.
  \label{eq:ik-components}
 \end{equation}
 
 \subsection{Eliminating the first two joint angles}
 We now form three \emph{known target quantities}:
 \begin{equation}
- h:=z_d-d_1,\qquad \rho_w^2:=x_d^2+y_d^2,\qquad
- \Rcal:=\rho_w^2+h^2=\|{}^0\vect{p}_{C,d}-{}^0\vect{p}_O\|^2.
+ h:=z_{w,d}-d_1,\qquad \rho_{w,d}^2:=x_{w,d}^2+y_{w,d}^2,\qquad
+ \Rcal:=\rho_{w,d}^2+h^2=\|{}^0\vect{p}_{W,d}-{}^0\vect{p}_O\|^2.
  \label{eq:ik-invariants}
 \end{equation}
-$h$ is the wrist height above $O$, $\rho_w$ is wrist distance to axis~1, and $\Rcal$ is
+$h$ is the desired wrist height above $O$, $\rho_{w,d}$ is its distance to axis~1, and $\Rcal$ is
 the wrist squared distance to $O$. None changes when joint~1 rotates. For a solution,
-\eqref{eq:ik-components} gives $H=h$ and $\rho_w^2=A^2+Y^2$.
+\eqref{eq:ik-components} gives $H=h$ and $\rho_{w,d}^2=A^2+Y^2$.
 
-Rotation preserves norm. We apply that to the first relation in \eqref{eq:ik-intermediate-vectors}:
+The $q_2$ rotation in \eqref{eq:ik-intermediate-vectors} preserves the norm:
 \begin{equation}
  \underbrace{X^2+B^2+D^2}_{\|R_y(q_2)(F_1,B,F_2)^\trans\|^2}
  =\underbrace{F_1^2+B^2+F_2^2}_{\|(F_1,B,F_2)^\trans\|^2}
@@ -136,32 +132,24 @@ We use the half-angle substitution
  c_3=\frac{1-t^2}{\Delta},\qquad s_3=\frac{2t}{\Delta}.
  \label{eq:ik-half-angle}
 \end{equation}
-The hat below denotes a numerator after substitution.
-Multiplying by the common denominator $\Delta$ gives
-\begin{equation}
- \begin{aligned}
- \widehat F_1(t)&:=\Delta F_1=a_2\Delta+d_4(1-t^2),\\
- \widehat B(t)&:=\Delta B=d_2\Delta+2d_4t,\\
- \widehat F_3(t)&:=\Delta F_3=L\Delta+2a_2d_4(1-t^2)+4d_2d_4t.
- \end{aligned}
- \label{eq:ik-numerators}
-\end{equation}
-Each numerator is quadratic in $t$. Multiplying \eqref{eq:ik-closure} by
-$c_\gamma^2\Delta^2$ clears the denominators and yields a polynomial of degree
-at most four, because it contains squares of these quadratics:
+Substituting into \eqref{eq:ik-closure} and multiplying by
+$c_\gamma^2\Delta^2$ clears the denominators and gives
 \begin{equation}
  \boxed{\begin{aligned}
- P(t)={}&c_\gamma^2(\Rcal\Delta-\widehat F_3)^2
-       +4a_1^2(h\Delta-s_\gamma\widehat B)^2\\
-       &-4a_1^2c_\gamma^2(\widehat F_1^2+d_3^2\Delta^2)=0.
+ P(t)={}&c_\gamma^2\bigl[(\Rcal-L)\Delta-2a_2d_4(1-t^2)-4d_2d_4t\bigr]^2\\
+       &+4a_1^2\bigl[h\Delta-s_\gamma(d_2\Delta+2d_4t)\bigr]^2
+       -4a_1^2c_\gamma^2\bigl\{[a_2\Delta+d_4(1-t^2)]^2+d_3^2\Delta^2\bigr\}=0.
  \end{aligned}}
  \label{eq:ik-quartic}
 \end{equation}
-Every real root of the polynomial gives a $q_3=2\arctan t$. Since $\Delta>0$ for real $t$,
+The expressions being squared have degree at most two, so $P$ has degree at most four.
+Every real root gives a $q_3=2\arctan t$. Since $\Delta>0$ for real $t$,
 clearing denominators adds no real roots. We must test $q_3=\pi$ separately in
 \eqref{eq:ik-closure}, because its half-angle tangent is undefined. This missing point is included in the maximum of four distinct $q_3$ candidates.
 
-\subsection{Recovering the remaining arm angles}
+\subsection{Recovering and checking the solutions}
+\label{sec:ik-orientation}
+\textbf{Arm angles.}
 For each candidate $q_3$, we evaluate \eqref{eq:ik-auxiliary} for $F_1,F_2,B$ and
 use \eqref{eq:ik-XD} for $X,D$. Combining their defining equations cancels
 $s_2$ in $F_1X+F_2D$ and $c_2$ in $F_2X-F_1D$, giving us
@@ -175,27 +163,26 @@ The denominator is positive because $F_2=d_3\ne0$, and the closure ensures
 $c_2^2+s_2^2=1$. Next we set $A=a_1+X$, $Y=c_\gamma B-s_\gamma D$ and recover
 the base angle from the horizontal equations:
 \begin{equation}
- q_1=\operatorname{atan2}(\underbrace{Ay_d-Yx_d}_{\rho_w^2s_1},\;
-           \underbrace{Ax_d+Yy_d}_{\rho_w^2c_1}),\qquad \rho_w>0.
+ q_1=\operatorname{atan2}(\underbrace{Ay_{w,d}-Yx_{w,d}}_{\rho_{w,d}^2s_1},\;
+           \underbrace{Ax_{w,d}+Yy_{w,d}}_{\rho_{w,d}^2c_1}),\qquad \rho_{w,d}>0.
  \label{eq:ik-q1}
 \end{equation}
-The common positive factor $\rho_w^2$ does not change the angle.
-If $\rho_w=0$, the wrist centre lies on axis~1 and $q_1$ is free, in which case we
+The common positive factor $\rho_{w,d}^2$ does not change the angle.
+If $\rho_{w,d}=0$, the wrist centre lies on axis~1 and $q_1$ is free, in which case we
 choose a value in $[-\pi,\pi]$ and solve the wrist for that choice.
 
-\subsection{Recovering the wrist angles}
-\label{sec:ik-orientation}
+\textbf{Wrist angles.}
 For each arm solution, we undo its orientation using the transpose, then solve
 the remaining local $x$--$z$--$x$ wrist rotations:
 \begin{equation}
  \begin{aligned}
  {}^0R_3&=R_z(q_1)Q R_y(q_2)R_z(q_3),\\
- {}^3R_{6,d}&=({}^0R_3)^\trans\,{}^0R_{6,d}
+ {}^3R_{E,d}&=({}^0R_3)^\trans\,{}^0R_{E,d}
              =R_x(q_4)R_z(q_5)R_x(q_6)=:(r_{ij}).
  \end{aligned}
  \label{eq:ik-wrist-rotation}
 \end{equation}
-Here $r_{ij}$ is entry $(i,j)$ of ${}^3R_{6,d}$. Multiplying the wrist
+Here $r_{ij}$ is entry $(i,j)$ of ${}^3R_{E,d}$. Multiplying the wrist
 rotations gives us five useful entries:
 \begin{equation}
  r_{11}=c_5,\quad r_{21}=c_4s_5,\quad r_{31}=s_4s_5,\quad
@@ -224,7 +211,7 @@ are coaxial, so only a sum or difference is fixed:
 \end{equation}
 We may set $q_4=0$ and recover $q_6$ from the appropriate relation.
 
-\subsection{Assembling and checking the solutions}
+\textbf{Assembly and validation.}
 For every real $q_3$ candidate, we recover the arm and both wrist branches.
 We represent angles in $[-\pi,\pi]$, enforce joint limits, remove duplicates
 modulo $2\pi$, and check position and orientation by forward kinematics.

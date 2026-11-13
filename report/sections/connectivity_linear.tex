@@ -1,63 +1,47 @@
-\subsection{A straight arm path with fixed tool orientation}
-\label{sec:connectivity-linear}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=\linewidth]{figures/connectivity_linear.pdf}
+\caption{Arm singularities and a fixed-orientation solution change
+in (a) joint space and (b) the wrist-centre workspace,
+with $\rho_w=\sqrt{x_w^2+y_w^2}$.
+The cusps indicate that the CuRo6R's positioning chain is cuspidal: it can
+change between IK solutions without crossing an arm singularity.
+At the marked target, $t_1<t_2<t_3<t_4$.
+The folds $F_{ij}$ merge $t_i,t_j$; cusps $C_k$ are indexed by the
+root $k$ shared by their incident folds, with $u/r$ superscript distinguishing upper/right.}
+\label{fig:arm-singularity-map}
+\label{fig:connectivity-linear}
+\end{figure}
 
-We first test a simple construction:
-connect two arm solutions by a straight segment in $(q_1,q_2,q_3)$, then
-adjust the wrist to keep the tool orientation fixed. The tool position is
-free to move between the endpoints.
+\textbf{A straight arm path with fixed tool orientation.} We index each full configuration $\vect{q}^{(i)}$ by its arm root $t_i$
+on the chosen wrist branch. We choose the initial joint configuration
+$\vect{q}^{(4)}=(0.1024,\allowbreak-1.1124,\allowbreak1.8547,\allowbreak-1.4399,\allowbreak-0.3835,\allowbreak-2.6486)^\trans$
+(in radians), compute ${}^0T_{E,d}=\operatorname{FK}(\vect{q}^{(4)})$, and solve the IK
+for this pose, obtaining eight solutions. Excluding the initial solution,
+exactly one has the same signs of $\det J_{v,\mathrm{arm}}$ and $\sin q_5$:
+$\vect{q}^{(2)}\approx(-2.2287,\allowbreak-2.1482,\allowbreak-0.2788,\allowbreak0.6181,\allowbreak-0.3524,\allowbreak-1.7072)^\trans$.
+This candidate also satisfies the endpoint joint-limit and singularity
+margins, but matching signs alone does not guarantee a nonsingular connection.
 
-\textbf{Selecting a candidate pair.}
-For the initial configuration $\vect{q}^A$ below, the analytical solver returns
-eight solutions of $T_d=\operatorname{FK}(\vect{q}^A)$.
-Equation~\eqref{eq:jacobian-determinant} gives two necessary conditions for
-a regular connection: $\det J_{v,\mathrm{arm}}$ and the wrist factor $\sin q_5$
-must each retain their sign. Equal signs alone do not establish connectivity;
-the path between the endpoints must still be checked.
-After removing the initial solution and screening the signs and endpoint
-margins, one candidate remains, $\vect{q}^B$. In radians,
+We discretize the straight path between their arm joints
+$\vect{q}_a=(q_1,q_2,q_3)^\trans$:
 \begin{equation}
- \begin{aligned}
- (\vect{q}^A)^\trans&=(\phantom{-}0.1024,\;-1.1124,\;\phantom{-}1.8547,\;-1.4399,\;-0.3835,\;-2.6486),\\
- (\vect{q}^B)^\trans&\simeq(-2.2287,\;-2.1482,\;-0.2788,\;\phantom{-}0.6181,\;-0.3524,\;-1.7072).
- \end{aligned}
- \label{eq:connectivity-endpoints}
-\end{equation}
-Their arm solutions are labelled $t_1$ and $t_3$, respectively, in
-Figure~\ref{fig:connectivity-linear}.
-
-\textbf{From the arm segment to the full motion.}
-Writing $\vect{q}_a=(q_1,q_2,q_3)^\trans$, we prescribe
-\begin{equation}
- \vect{q}_a(s)=(1-s)\vect{q}_a^A+s\vect{q}_a^B,\qquad 0\leq s\leq1,
+ \vect{q}_a(s)=(1-s)\vect{q}_a^{(4)}+s\vect{q}_a^{(2)},\qquad 0\leq s\leq1,
  \label{eq:connectivity-arm-segment}
 \end{equation}
-where $s$ is a path advancement parameter. At each sample, we compute
-$({}^0R_3(\vect{q}_a(s)))^\trans R_d$ and recover $q_4,q_5,q_6$ using
-\eqref{eq:ik-wrist-solutions}, always choosing the initial wrist sign.
-Thus a straight arm segment produces a closed, curved workspace path.
-Figure~\ref{fig:connectivity-linear}(a) overlays this segment on the arm
-singularity map; panel (b) shows the corresponding wrist-centre loop in
-$(\rho_w,z_w)$, with $\rho_w=\sqrt{x_w^2+y_w^2}$.
-The arm segment stays in one regular region. Crossings of the workspace
-singularity curves concern other IK branches, not the followed configuration.
+where $s$ measures path advancement. At each sample, we remove the arm
+orientation from the desired orientation ${}^0R_{E,d}$ by computing
+${}^3R_{E,d}(s)=({}^0R_3(\vect{q}_a(s)))^\trans\,{}^0R_{E,d}$.
+We recover the wrist angles using \eqref{eq:ik-wrist-solutions}, preserving
+the initial sign of $\sin q_5$ and choosing continuous angle representatives.
+The tool orientation remains fixed while its position is free to vary.
 
-\textbf{Validation and interpretation.}
-We evaluate 10\,000 equally spaced samples, monitoring the arm sign,
-$|\sin q_5|>10^{-6}$ and the full tool Jacobian. To compare its linear and
-angular rows, we use a characteristic length $\ell_c=2\,\mathrm m$:
-\begin{equation}
- \widetilde J=\operatorname{diag}(\ell_c^{-1}I_3,I_3)\,{}^0J_6,\qquad
- m_q(s)=\min_i\{q_i(s)+\pi,\;\pi-q_i(s)\}.
- \label{eq:connectivity-margins}
-\end{equation}
-The minimum $\sigma_{\min}(\widetilde J)$ is $0.0132$, above the $10^{-3}$
-threshold; the minimum joint clearance is $0.493\,\mathrm{rad}$ and
-$\min|\sin q_5|=0.337$.
-Position closure is $2.22\times10^{-15}\,\mathrm m$ and the maximum
-orientation error is $2.11\times10^{-8}\,\mathrm{rad}$.
-Independent DH evaluation agrees with the PoE positions within
-$5.50\times10^{-15}\,\mathrm m$.
-This numerically demonstrates a solution change for the selected pair.
-The checks concern sampled configurations, not every intervening point.
-A rejected segment would identify an arm, wrist or joint-limit obstruction
-along that attempt; it would not rule out a curved connection.
+We continue only while joint-limit clearance is nonnegative, the arm
+determinant retains its sign, $|\sin q_5|>10^{-6}$, and
+$\sigma_{\min}(\widetilde J)>10^{-3}$, where
+$\widetilde J=\operatorname{diag}(\ell_c^{-1}I_3,I_3)\,{}^0J_E$
+uses the characteristic length $\ell_c=2\,\mathrm m$ to scale the linear
+velocity rows. A failed check stops the attempt; acceptance also requires
+reaching the selected goal. Figure~\ref{fig:connectivity-linear} shows the
+accepted change from $\vect{q}^{(4)}$ to $\vect{q}^{(2)}$. These checks concern the sampled
+configurations, so a finer discretization improves confidence of real success.

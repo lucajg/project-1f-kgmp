@@ -1,3 +1,5 @@
+% Keep the heading with its introductory paragraph.
+\Needspace{6\baselineskip}
 \subsection{PoE model}
 \label{sec:poe}
 
@@ -6,38 +8,14 @@ configuration $\vect{q}=\vect{0}$. For each joint, $\vect{\omega}_i$ is its unit
 and $\vect{r}_i$ is its physical origin. All vectors are expressed in
 \texttt{base\_link}; the endpoint is \texttt{link\_6}, as in the DH model.
 
-\textbf{Axis directions.}
-The rotation axes were identified visually in a URDF view at home.
-Their positive directions follow the URDF joint convention.
-Let $\vect{e}_x=(1,0,0)^\trans$, $\vect{e}_y=(0,1,0)^\trans$ and
-$\vect{e}_z=(0,0,1)^\trans$ denote the coordinate unit vectors.
-The fixed tilt $\gamma=\pi/6$ gives $\vect{\omega}_2=R_x(\gamma)\vect{e}_y$
-and $\vect{\omega}_3=\vect{\omega}_5=R_x(\gamma)\vect{e}_z$.
-
-\textbf{Joint origins.}
-Starting at joint 1, each origin was found by adding the relevant robot
-dimensions to the preceding origin. Each offset must first be expressed
-in the base frame. With lengths in metres, this gives
-\begin{equation}
- \begin{aligned}
- \vect{r}_1&=\tfrac12\vect{e}_z,
- & \vect{r}_2&=\vect{r}_1+\tfrac45\vect{e}_x+\tfrac12\vect{e}_z,\\
- \vect{r}_3&=\vect{r}_2+2\vect{e}_x+\tfrac54\vect{\omega}_2,
- & \vect{r}_4&=\vect{r}_3+\tfrac32\vect{e}_x+\tfrac34\vect{\omega}_3,\\
- \vect{r}_5&=\vect{r}_4+\vect{e}_x,
- & \vect{r}_6&=\vect{r}_5+\tfrac32\vect{e}_x.
- \end{aligned}
- \label{eq:poe-origins}
-\end{equation}
-For example, the offset from joint 2 to joint 3 combines a 2 m step along
-the base $x$ axis and a 1.25 m step along joint 2's tilted axis.
-The resulting vectors are listed in Table~\ref{tab:poe-screws}, together
-with $\vect{v}_i=-\vect{\omega}_i\times\vect{r}_i$.
-
-\begin{table}[!ht]
+% Keep the wrapped table beside the axis and origin explanations.
+\Needspace{18\baselineskip}
+\begingroup
+\setlength{\intextsep}{6pt}
+\setlength{\columnsep}{12pt}
+\begin{wraptable}{r}{0.60\linewidth}
 \centering
-\caption{Home screw data. Each vector is written as a row; $\vect{r}_i$ uses the physical
-joint origin. Lengths are in metres.}
+\caption{Home screw data in \texttt{base\_link}; vectors are rows, lengths in metres.}
 \label{tab:poe-screws}
 \small
 \setlength{\tabcolsep}{5pt}
@@ -60,7 +38,36 @@ $i$ & $\vect{\omega}_i^\trans$ & $\vect{r}_i^\trans$ & $\vect{v}_i^\trans$ \\
   & $(0,\tfrac{13+3\sqrt3}{8},\tfrac{3-5\sqrt3}{8})$ \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{wraptable}
+
+\textbf{Axis directions.}
+The rotation axes were identified visually in a URDF view at home.
+Their positive directions follow the URDF joint convention.
+Let $\vect{e}_x=(1,0,0)^\trans$, $\vect{e}_y=(0,1,0)^\trans$ and
+$\vect{e}_z=(0,0,1)^\trans$ denote the coordinate unit vectors.
+The fixed tilt $\gamma=\pi/6$ gives $\vect{\omega}_2=R_x(\gamma)\vect{e}_y$
+and $\vect{\omega}_3=\vect{\omega}_5=R_x(\gamma)\vect{e}_z$.
+
+\textbf{Joint origins.}
+Starting at joint 1, each origin was found by adding the relevant robot
+dimensions to the preceding origin. Each offset must first be expressed
+in the base frame. With lengths in metres, this gives
+\par
+\begin{equation}
+ \begin{gathered}
+ \vect{r}_1=\tfrac12\vect{e}_z,\qquad
+ \vect{r}_2=\vect{r}_1+\tfrac45\vect{e}_x+\tfrac12\vect{e}_z,\qquad
+ \vect{r}_3=\vect{r}_2+2\vect{e}_x+\tfrac54\vect{\omega}_2,\\
+ \vect{r}_4=\vect{r}_3+\tfrac32\vect{e}_x+\tfrac34\vect{\omega}_3,\qquad
+ \vect{r}_5=\vect{r}_4+\vect{e}_x,\qquad
+ \vect{r}_6=\vect{r}_5+\tfrac32\vect{e}_x.
+ \end{gathered}
+ \label{eq:poe-origins}
+\end{equation}
+For example, the offset from joint 2 to joint 3 combines a 2 m step along
+the base $x$ axis and a 1.25 m step along joint 2's tilted axis.
+The resulting vectors are listed in Table~\ref{tab:poe-screws}, together
+with $\vect{v}_i=-\vect{\omega}_i\times\vect{r}_i$.
 
 \textbf{Forward model.}
 Each pair $(\vect{\omega}_i,\vect{v}_i)$ defines a screw axis and its matrix form:
@@ -78,3 +85,5 @@ This gives its home pose $M$ and the complete forward kinematics:
  \cdots e^{\widehat{\vect{\xi}}_6q_6}M.}
  \label{eq:poe-fk}
 \end{equation}
+\par
+\endgroup
