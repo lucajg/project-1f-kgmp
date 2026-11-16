@@ -1,0 +1,123 @@
+<div id="cusp-contact-circle">
+  <style>
+    #cusp-contact-circle { display: grid; gap: calc(var(--font-size-base) * .75); }
+    #cusp-contact-circle h3 { padding-inline-end: 95px; }
+    #cusp-contact-circle .legend { display: flex; flex-wrap: wrap; gap: calc(var(--font-size-base) * 1.25); }
+    #cusp-contact-circle .legend span { display: inline-flex; align-items: center; gap: calc(var(--font-size-base) * .4); }
+    #cusp-contact-circle .swatch { width: 24px; border-top: 2px solid currentColor; }
+    #cusp-contact-circle .swatch.ellipse { color: var(--viz-series-2, currentColor); border-top-style: dashed; }
+    #cusp-contact-circle .plot { display: block; width: 100%; }
+    #cusp-contact-circle .plot text { fill: currentColor; font: inherit; }
+    #cusp-contact-circle .ends { display: flex; justify-content: space-between; }
+  </style>
+  <h3>Three intersections becoming one</h3>
+  <div class="legend text-small" aria-label="Legend">
+    <span><i class="swatch" aria-hidden="true"></i>Unit circle</span>
+    <span><i class="swatch ellipse" aria-hidden="true"></i>Illustrative ellipse</span>
+  </div>
+  <svg class="plot" role="img" aria-labelledby="cusp-contact-title cusp-contact-desc">
+    <title id="cusp-contact-title">Three circle–ellipse intersections approach a triple contact</title>
+    <desc id="cusp-contact-desc">Three intersection points converge at the rightmost point of the unit circle. A fourth intersection stays at the top. At the final state the circle and ellipse have a common tangent and curvature at the triple intersection; both curves remain smooth. This is an illustrative family, not the robot's exact conic.</desc>
+    <g class="geometry"></g>
+  </svg>
+  <div>
+    <label class="form-label" for="cusp-contact-progress">Approach the cusp</label>
+    <input id="cusp-contact-progress" class="form-range" type="range" min="0" max="100" step="1" value="15">
+    <div class="ends text-small"><span>Separated</span><span>Cusp</span></div>
+  </div>
+  <output class="text-small" id="cusp-contact-status" aria-live="polite">Four distinct intersections</output>
+  <script>
+    (() => {
+      const root = document.getElementById('cusp-contact-circle');
+      const plot = root.querySelector('.plot');
+      const geometry = root.querySelector('.geometry');
+      const slider = root.querySelector('#cusp-contact-progress');
+      const status = root.querySelector('#cusp-contact-status');
+      const valid = p => typeof p === 'number' && Number.isFinite(p) && p >= 0 && p <= 100;
+      const saved = window.openai?.widgetState?.modelContent?.cuspApproach;
+      let progress = valid(saved) ? saved : 15;
+      let animation = 0;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+      slider.value = String(progress);
+
+      function render(p) {
+        const delta = .4 * (1 - p / 100);
+        const atCusp = p >= 100 - 1e-8;
+        // F = x^2+y^2-1 + 3/2 ((x-1)(x-1+y) + delta^2 y(1+x-y)).
+        // On the circle: F = 6 t(t-delta)(t+delta)(t-1)/(1+t^2)^2.
+        const a = 2.5, b = .75 * (1 + delta * delta), c = 1 - 1.5 * delta * delta;
+        const bx = -3, by = 1.5 * (delta * delta - 1), det = a*c - b*b;
+        const ex = -.5 * (c*bx - b*by) / det;
+        const ey = -.5 * (-b*bx + a*by) / det;
+        const radius = Math.sqrt(-.5 - .5 * (bx*ex + by*ey));
+        const l11 = Math.sqrt(a), l21 = b / l11, l22 = Math.sqrt(c - l21*l21);
+        const width = Math.max(280, root.getBoundingClientRect().width);
+        const r = Math.min(165, (width - 105) / 2.2);
+        const cx = width / 2 - 28, cy = 1.35*r + 22, height = 2.45*r + 47;
+        const sx = x => cx + r*x, sy = y => cy - r*y;
+        plot.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        plot.setAttribute('height', String(height));
+        const path = [];
+        for (let k = 0; k <= 480; k++) {
+          const angle = k / 480 * 2 * Math.PI;
+          const y = radius * Math.sin(angle) / l22;
+          const x = (radius * Math.cos(angle) - l21*y) / l11;
+          path.push(`${k ? 'L' : 'M'}${sx(ex+x).toFixed(3)},${sy(ey+y).toFixed(3)}`);
+        }
+        const roots = atCusp ? [0] : [-delta, 0, delta];
+        const points = roots.map(t => {
+          const x = (1-t*t)/(1+t*t), y = 2*t/(1+t*t);
+          return `<circle class="merging-root" cx="${sx(x)}" cy="${sy(y)}" r="${atCusp ? 6 : 4.5}" fill="currentColor" style="color:var(--viz-series-1,currentColor)"/>`;
+        }).join('');
+        const rootLabel = atCusp ? 'Triple root' : 'Three roots';
+        geometry.innerHTML = `
+          <g stroke="currentColor" stroke-opacity=".18" stroke-width="1" fill="none" pointer-events="none">
+            <line x1="${sx(-1.08)}" y1="${cy}" x2="${sx(1.10)}" y2="${cy}"/>
+            <line x1="${cx}" y1="${sy(-1.08)}" x2="${cx}" y2="${sy(1.28)}"/>
+          </g>
+          <circle class="unit-circle" cx="${cx}" cy="${cy}" r="${r}" stroke="currentColor" stroke-width="1.8" fill="none"/>
+          <path class="ellipse" d="${path.join(' ')} Z" stroke="currentColor" style="color:var(--viz-series-2,currentColor)" stroke-width="2" stroke-dasharray="7 4" fill="none"/>
+          ${atCusp ? `<line x1="${sx(1)}" x2="${sx(1)}" y1="${sy(-.32)}" y2="${sy(.32)}" stroke="currentColor" stroke-opacity=".5" stroke-width="1"/>` : ''}
+          <circle cx="${cx}" cy="${sy(1)}" r="4.5" fill="var(--background)" stroke="currentColor" stroke-width="1.6"/>
+          ${points}
+          <g stroke="currentColor" stroke-opacity=".5" stroke-width="1" fill="none" pointer-events="none">
+            <line x1="${cx-6}" y1="${sy(1)}" x2="${cx-26}" y2="${sy(1)+20}"/>
+            <line x1="${sx(1)+8}" y1="${cy}" x2="${sx(1)+15}" y2="${cy-11}"/>
+          </g>
+          <text x="${cx-30}" y="${sy(1)+25}" text-anchor="end" class="text-small">Fourth root</text>
+          <text x="${sx(1)+11}" y="${cy-18}" class="text-small">${rootLabel}</text>
+          <text x="${cx+9}" y="${sy(1.29)}" class="text-small">sin q₃</text>
+          <text x="${sx(1)+10}" y="${cy+40}" class="text-small">cos q₃</text>`;
+        status.textContent = atCusp ? 'Two distinct points: one triple intersection and one simple intersection' : 'Four distinct intersections';
+        slider.setAttribute('aria-valuetext', atCusp ? 'At the cusp' : `${Math.round(p)} percent of the approach`);
+      }
+
+      slider.addEventListener('input', () => {
+        const target = Number(slider.value);
+        cancelAnimationFrame(animation);
+        if (reduced.matches) { progress = target; render(progress); return; }
+        const initial = progress, start = performance.now();
+        const step = now => {
+          const f = Math.min(1, (now-start)/120);
+          progress = initial + (target-initial) * (1 - (1-f)**2);
+          render(progress);
+          if (f < 1) animation = requestAnimationFrame(step);
+        };
+        animation = requestAnimationFrame(step);
+      });
+      slider.addEventListener('change', () => {
+        if (window.openai?.setWidgetState) {
+          window.openai.setWidgetState({modelContent:{cuspApproach:Number(slider.value)}}).catch(() => {});
+        }
+      });
+      window.addEventListener('openai:set_globals', event => {
+        const value = event.detail?.globals?.widgetState?.modelContent?.cuspApproach;
+        if (valid(value)) {
+          cancelAnimationFrame(animation); progress = value; slider.value = String(value); render(value);
+        }
+      });
+      new ResizeObserver(() => render(progress)).observe(root);
+      render(progress);
+    })();
+  </script>
+</div>

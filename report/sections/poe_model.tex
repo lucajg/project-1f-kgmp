@@ -3,10 +3,11 @@
 \subsection{PoE model}
 \label{sec:poe}
 
-The product of exponentials (PoE) model uses the joint axes at the home
-configuration $\vect{q}=\vect{0}$. For each joint, $\vect{\omega}_i$ is its unit axis direction
-and $\vect{r}_i$ is its physical origin. All vectors are expressed in
-\texttt{base\_link}; the endpoint is \texttt{link\_6}, as in the DH model.
+The product of exponentials (PoE) model uses the home unit axis directions
+$\vect{\omega}_i$ and physical origins $\vect{r}_i:={}^0\vect{t}_i(\vect{0})$
+for $i=1,\ldots,5$, with $\vect{r}_6:={}^0\vect{t}_E(\vect{0})$.
+All vectors are expressed in \texttt{base\_link}; the endpoint $E$ is
+\texttt{link\_6}, as in the DH model.
 
 % Keep the wrapped table beside the axis and origin explanations.
 \Needspace{18\baselineskip}

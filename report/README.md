@@ -161,6 +161,64 @@ validation margins remain in the text. Validation is numerical on
 the sample grid; the text does not claim an interval-wide certificate or
 global disconnection when a straight segment fails.
 
+## Reference-target root figures
+
+`figures/connectivity_quartic.pdf` plots the actual `q3` quartic, with the
+same increasing `t_1,...,t_4` labels as `connectivity_linear.pdf`.
+`figures/connectivity_circle_conic.pdf` shows these roots as the intersections
+of `c^2+s^2=1` and the quadratic closure conic `C(c,s)=0`, where
+`C(cos(q3),sin(q3)) = cos(gamma)^2 G(q3)`. With the report's affine expression
+for `F3`, this conic is a hyperbola. The two representations satisfy
+`P(t) = (1+t^2)^2 C((1-t^2)/(1+t^2), 2t/(1+t^2))`.
+The grey cross at `(-1,0)` represents the omitted half-angle point; it is
+not a root at this target. Circle labels identify roots, not Cartesian
+coordinate values.
+
+Both figures use the full-precision target in `connectivity_linear_data.json`,
+giving `(rho_w,z_w) = (2.512439479654,4.121782204807)` m. They are separate
+assets; `figures/connectivity_roots_captions.tex` supplies optional LaTeX
+figure blocks. Regenerate the two vector PDFs, PNG previews and numerical
+record `figures/connectivity_roots_data.json` from the repository root with:
+
+```sh
+python3 report/figures/generate_connectivity_roots.py
+```
+
+The generator verifies the polynomial/conic identity, all four intersections,
+agreement with the exported IK labels, and arm-angle recovery followed by FK.
+The maximum identity residual is `1.14e-13`; the maximum recovered wrist
+position error is `3.77e-15` m. Displayed coefficients are rounded, while
+all curves use full precision. The plots match the report's font and text
+width. The main report is not modified or rebuilt by this generator.
+
+### Near the upper cusp
+
+`figures/cusp_quartic.pdf` and `figures/cusp_circle_conic.pdf` are companion
+figures at `U = (rho_w,z_w) = (1.4863,5.3800)` m, inside the four-root region
+and 0.0660 m from `C_3^u = (1.4285788365,5.4120246351)` m. Each has an
+overview and a close-up of the `t_2',t_3',t_4'` cluster. The primed values are
+approximately `(-0.063301,0.383889,0.480004,0.563463)`. The three clustered
+angles span 0.29316 rad (16.80 degrees); the first root remains separated.
+At the cusp the clustered roots tend to `tan(q3/2) = 0.4688124829`.
+
+Primes distinguish target values, while subscripts retain the original
+branch identities. `figures/generate_cusp_roots.py` checks this using 531
+continuation samples inside the four-root region, with angular matching
+between steps. The path first enters the interior horizontally, then follows
+the middle of successive horizontal four-root slices before reaching U;
+the direct segment from the reference target toward the cusp leaves the
+four-root region. Along the sampled continuation the minimum angular gap is
+0.12393 rad and the maximum step is 0.00836 rad, with no root at infinity.
+The generator also verifies all four simple roots, the circle/conic identity,
+and arm recovery followed by FK (slice residual `1.60e-15` m).
+
+Regenerate with `python3 report/figures/generate_cusp_roots.py` from the
+repository root. PNG previews are saved alongside the PDFs. The numerical
+record and sampled continuation are in `figures/cusp_roots_data.json`;
+optional figure blocks are in
+`figures/cusp_roots_captions.tex`. These additions retain the original-target
+figures and do not rebuild the report.
+
 ## Analytical IK illustration preview
 
 `ik_illustrations.tex` compiles to a one-page preview, separate from the main
